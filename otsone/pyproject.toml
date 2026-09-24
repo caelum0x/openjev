@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "otsone"
+version = "0.2.0"
+description = "OpenJev otsone: a calibrated typed-decision model toolkit (Choice/Score/Noul) for CPU/edge and Apple silicon. Trains and serves the flagship otsone-1 model; also runs the Laya models (Convai, Apache-2.0)."
+keywords = ["otsone", "openjev", "typed-decisions", "decision-model", "local-ai", "mlx", "onnx", "apple-silicon", "laya"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = [
+  "mlx>=0.32.2,<0.33; sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "numpy>=1.26",
+  "huggingface-hub>=0.34,<2",
+  "tokenizers>=0.21,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.12", "build>=1"]
+reference = ["torch>=2.14,<3", "transformers>=5.17,<6", "safetensors>=0.6"]
+benchmark = ["matplotlib>=3.10", "pyarrow>=18"]
+demo = ["rich>=15,<16", "Pillow>=12,<13"]
+# HTTP sidecar (laya-serve): stdlib only beyond the core runtime deps.
+server = []
+# ONNX backend + export: run exported graphs (onnxruntime) and export them (torch).
+onnx = ["onnxruntime>=1.18", "torch>=2.0", "safetensors>=0.6"]
+# Distillation / training of a compact ONNX model.
+train = ["torch>=2.0", "sentence-transformers>=3,<6", "onnxruntime>=1.18"]
+
+[project.scripts]
+# Primary OpenJev entry points.
+otsone = "laya_mlx.cli:main"
+otsone-serve = "laya_mlx.server:main"
+# Backward-compat aliases (same functions; the Laya model still ships here).
+laya-mlx = "laya_mlx.cli:main"
+laya-serve = "laya_mlx.server:main"
+laya-snake = "laya_mlx.snake.cli:main"
+
+[project.urls]
+Repository = "https://github.com/caelum0x/openjev/tree/main/otsone"
+Documentation = "https://github.com/caelum0x/openjev/blob/main/otsone/README.md"
+Issues = "https://github.com/caelum0x/openjev/issues"
+Benchmarks = "https://github.com/caelum0x/openjev/blob/main/otsone/BENCHMARKS.md"
+Upstream = "https://github.com/NandhaKishorM/laya"
+"MLX port upstream" = "https://github.com/mizorewww/laya-mlx"
+
+[tool.hatch.build.targets.wheel]
+# laya_mlx is the Laya-derived engine; otsone is the thin public-API alias package.
+packages = ["laya_mlx", "otsone"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/laya_mlx", "/otsone", "/pyproject.toml", "/README.md", "/LICENSE", "/NOTICE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: requires downloaded Laya checkpoints"]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = [".upstream"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

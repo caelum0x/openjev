@@ -1,0 +1,15 @@
+{
+  "name": "openjev",
+  "description": "Agent skills for building with the OpenJev System One API (wire-compatible with TypeSafe System One v1).",
+  "owner": {
+    "name": "openjev contributors",
+    "url": "https://github.com/caelum0x/openjev"
+  },
+  "plugins": [
+    {
+      "name": "openjev",
+      "description": "Full context on the OpenJev / TypeSafe System One API: question types, architectural patterns, and best practices",
+      "source": "./"
+    }
+  ]
+}

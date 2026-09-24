@@ -1,0 +1,16 @@
+openjev-skills
+
+This project is based on @typesafe-ai/skills (MIT):
+https://github.com/typesafe-ai/skills
+
+The original work is Copyright (c) 2026 TypeSafe AI and is licensed under the
+MIT License. This derivative work rebrands the package and documentation to the
+openjev ecosystem and remains distributed under the same MIT License; see
+the LICENSE file for the full text.
+
+openjev-skills keeps the skill wire-compatible with the TypeSafe System One
+v1 API. The default base URL (https://api.typesafe.ai/v1) targets the hosted
+TypeSafe API and is overridable via OPENJEV_BASE_URL to a self-hosted
+openjev deployment. "TypeSafe", "System One", and related marks belong to
+their respective owners; this project is an independent, community rebrand and is
+not affiliated with or endorsed by TypeSafe AI.

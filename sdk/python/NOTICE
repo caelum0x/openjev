@@ -1,0 +1,20 @@
+openjev
+================
+
+This product is based on @typesafe-ai/typesafe-sdk-python (MIT), the official
+TypeSafe AI Python SDK:
+
+    https://github.com/typesafe-ai/typesafe-sdk-python
+
+openjev is an independent, rebranded fork distributed under the same
+MIT License (see the LICENSE file). It is kept wire-compatible with the TypeSafe
+System One /v1 API so that a single client works unchanged against both the hosted
+TypeSafe AI API (https://api.typesafe.ai) and a self-hosted openjev deployment
+that implements the same /v1/systemone contract.
+
+Original work Copyright (c) TypeSafe AI, licensed under the MIT License.
+Modifications Copyright (c) 2026 openjev contributors, licensed under the MIT License.
+
+"TypeSafe" is a trademark of its respective owner. This fork is not affiliated with
+or endorsed by TypeSafe AI; the name is retained only where required for wire and
+API compatibility.

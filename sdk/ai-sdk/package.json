@@ -1,0 +1,46 @@
+{
+  "name": "@openjev/ai-sdk",
+  "version": "0.1.0",
+  "description": "Vercel AI SDK tools and evaluators for OpenJev typed decisions: Choice, Score, Noul, the auto cascade and abstain",
+  "license": "MIT",
+  "author": "caelum0x",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md"],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["ai-sdk", "vercel-ai", "openjev", "typed-decisions", "classification", "calibration", "abstain"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caelum0x/openjev",
+    "directory": "sdk/ai-sdk"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "peerDependencies": {
+    "@openjev/sdk": ">=0.6.0",
+    "ai": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@openjev/sdk": "file:../js",
+    "@types/node": "^24.0.0",
+    "ai": "^7.0.113",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0",
+    "zod": "^4.1.8"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules
+.output
+.vercel
+.git
+.env
+.env.*
+!.env.example
+models
+dist
+**/target
+**/__pycache__
+*.log
+engine/rust/target
+engine/cpp/*.so
+npm-debug.log*

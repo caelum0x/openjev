@@ -1,0 +1,69 @@
+# deps / build output
+node_modules
+dist
+.output
+.nitro
+.turbo
+.vercel/
+.tanstack/
+coverage/
+**/target/
+engine/cpp/gold_test
+engine/cpp/*.so
+engine/cpp/*.dylib
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.venv-*/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# public leaderboard datasets (downloaded at run time by npm run leaderboard)
+.cache/
+
+# model weights / checkpoints / datasets — never committed
+# (see docs/WEIGHTS.md for where they come from)
+/models/
+otsone/models/
+otsone/.upstream/
+otsone/.cache/
+otsone/artifacts/
+*.onnx
+*.onnx.data
+*.safetensors
+*.gguf
+*.ckpt
+*.pt
+*.bin
+*.npz
+
+# secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*.p8
+
+# local databases (PGlite runs in memory by default; these cover on-disk dev DBs)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+pgdata/
+.pglite/
+
+# platform / editor local state
+.project_id
+.idea/
+.vscode/
+
+# misc
+.DS_Store
+*.log

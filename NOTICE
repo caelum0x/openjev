@@ -1,0 +1,49 @@
+OpenJev
+Copyright 2026 OpenJev contributors
+
+This product includes software developed by the OpenJev contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this software except in compliance with the License. You may obtain a copy of
+the License in the LICENSE file distributed with this project, or at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+------------------------------------------------------------------------------
+Third-party components
+------------------------------------------------------------------------------
+This project is an independent, open-source, self-hostable service that is
+wire-compatible with the TypeSafe AI System One v1 API. It is not affiliated
+with, sponsored by or endorsed by TypeSafe AI; "TypeSafe", "System One" and
+"Jev" are used only to describe compatibility.
+
+It optionally integrates with, but does not bundle, the following
+separately-licensed model runtimes and weights:
+
+  - Laya typed-decision runtimes ("laya-mlx", "laya-onnx") and their published
+    checkpoints (Hugging Face account "aac6fef"). Downloaded on demand by
+    scripts/laya-download.sh under their own licenses.
+  - thenlper/gte-small sentence encoder (MIT), as the int8 ONNX export published
+    at Hugging Face "Xenova/gte-small". Downloaded on demand at a pinned revision
+    by scripts/embed-download.sh; not included in this repository.
+  - Laya checkpoints: convaiinnovations/laya and aac6fef/laya-mlx,
+    aac6fef/laya-multilingual-mlx are published under Apache-2.0.
+
+External LLM providers (OpenAI, xAI, Anthropic) are used only when you supply a
+provider API key; they are governed by their respective terms.
+
+------------------------------------------------------------------------------
+Bundled subprojects
+------------------------------------------------------------------------------
+  - otsone/ — the otsone model toolkit (Apache-2.0). It includes code adapted from
+    Laya (https://github.com/NandhaKishorM/laya, Copyright Convai Innovations and
+    Laya contributors, Apache-2.0) and from the laya-mlx MLX port
+    (https://github.com/mizorewww/laya-mlx). See otsone/NOTICE.
+  - sdk/js, sdk/python, adapters/python, skills/ — MIT-licensed. These are derived
+    from the TypeSafe AI SDKs, and each keeps its original LICENSE and NOTICE.
+  - sdk/js-lite/ — the zero-dependency client (Apache-2.0).

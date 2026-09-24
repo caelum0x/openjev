@@ -1,0 +1,168 @@
+# Cookbook thresholds
+
+The cookbooks (smart home, SDE cascade, self-consistency) turn System One answers
+into actions with fixed cut-offs, for example "execute when `allow` >= 0.5" or
+"escalate when P(wrong) > 0.7". A cut-off only means something for one engine's
+score distribution. The sentence-embedding engine and the lexical (TF-IDF) engine
+give the same input very different probabilities, so each engine has its own set:
+
+| Set | Used for | Where the values came from |
+| --- | --- | --- |
+| `default` | lexical engine, neural sidecars, cloud, LLM | hand-set when the cookbooks were written; never re-measured |
+| `embedding` | the embedding engine (default `system-one` when the encoder is installed) | chosen by `scripts/cookbook-thresholds.ts` on the embedding engine (method below) |
+
+Both sets live in `src/lib/jev/cookbooks/thresholds.ts`. Every cookbook response
+includes `thresholds: { set, fitted_on, values }`, so a caller can see which gates
+decided the result. `fitted_on` is the embedding engine version the set was tuned
+on. If `engine.version` in the response is different (new encoder or re-fitted
+engine constants), run the script again.
+
+## How the embedding thresholds were chosen
+
+```bash
+npm run embed-download                      # encoder, once
+npm run cookbook-thresholds                 # print
+npm run cookbook-thresholds -- --write      # update code + this file
+```
+
+- **Data.** Labelled scenarios in `src/lib/jev/cookbooks/tuning-sets.ts`: 52 smart
+  home utterances, 20 invoice extraction records and 12 insurance claims. We wrote
+  them by hand, labelled each with what a careful operator would want, and grouped
+  them by expected outcome. Even rows are the **tune** half and odd rows are the
+  **held-out** half. Thresholds are chosen on the tune half only.
+- **Search.** Coordinate search over a 0.05 grid, 3 passes, minimising a weighted
+  cost:
+  - smart home: 4 for each unsafe execution (the device changed when the label
+    says it should not), plus 1 for each other row that is not fully right (path,
+    execute, device and action).
+  - cascade: 2 for each bad record that was not escalated, plus 1 for each
+    needless escalation. This one threshold is swept on a 0.01 grid.
+  - consistency: 3 for each wrong auto-pay, 2 for each wrong denial, plus 1 for
+    each claim sent to human review when the label was pay or deny.
+- **Ties.** Smart home and consistency have several gates. When values tie, the
+  one closest to the hand-set value wins, so a gate moves only as far as the tune
+  half requires. The cascade threshold takes the middle of the widest run of tied
+  values, so it sits in the middle of the gap between the score clusters.
+- **Not fitted.** `allow_irreversible` and `confidence_irreversible` are policy:
+  confirm before an unlock or disarm. The sets contain no labelled own-door
+  unlocks, so there is nothing to fit these gates on, and they keep their
+  hand-set values.
+- **Gold suite.** The odd half of the gold suite was not used to fit the embedding
+  engine's noul model (`scripts/embed-fit.ts` fits on the even half). It is
+  reported below as a general check of where a noul cut-off separates yes from
+  no. It has only 10 noul assertions, so it is not used to choose anything.
+
+## Logic fixes made while tuning
+
+The per-row diagnostics showed several failures that no threshold could fix.
+These were bugs in the cookbook logic and are fixed in code. The lexical engine
+benefits from them too, so the lexical rows below include the fixes.
+
+- Smart home:
+  - "are the living room blinds open" opened the blinds. The blinds keyword
+    overwrote the query action; queries now keep the query action.
+  - "turn off the smart plug in the office" turned the plug on, because on/off for
+    fans and outlets came from the engine's guess. The verb now decides.
+  - "what's the weather like" was treated as a device status query. General
+    questions are no longer matched as device queries.
+  - "arm the porch camera" ran a house scene. When the utterance names a device and
+    has no scene keyword, the request is now a device command.
+  - A scene the engine picked (not a keyword scene) ran with no confidence check,
+    so "what should I cook for dinner" started party mode. It now needs the
+    category and scene confidence to clear the confidence gate.
+  - A keyword scene ("I'm leaving") was blocked when the engine's `allow` was low.
+    Only an off-property phrase now blocks it.
+  - "open someone else's front door" ended on the query path. Off-property phrasing
+    now always ends on the blocked path.
+- Cascade: when a field is empty and nothing in the source labels it (no "IBAN",
+  "Freight" or "Payment terms" line), the empty value is correct, so
+  `absence_wrong` is capped at 0.28. This mirrors the existing rule for values
+  that are present in the source.
+
+## Results
+
+<!-- BEGIN GENERATED -->
+Engine: embedding gte-small+pfa4be686. Generated by scripts/cookbook-thresholds.ts.
+
+| Gate | Default (hand-set) | Embedding (tuned) |
+| --- | --- | --- |
+| smarthome.allow | 0.5 | 0.35 |
+| smarthome.allow_irreversible | 0.85 | 0.85 |
+| smarthome.confidence | 0.35 | 0.35 |
+| smarthome.confidence_irreversible | 0.55 | 0.55 |
+| smarthome.compound | 0.55 | 0.55 |
+| smarthome.is_query | 0.7 | 0.7 |
+| smarthome.whole_home | 0.7 | 0.7 |
+| cascade.fire | 0.7 | 0.38 |
+| consistency.deny_min | 0.7 | 0.7 |
+| consistency.pay_min | 0.65 | 0.85 |
+| consistency.pay_max_deny | 0.4 | 0.4 |
+| consistency.pay_max_human | 0.75 | 0.75 |
+
+### Smart home (52 utterances: 26 tune, 26 held-out)
+
+| Engine | Gates | Split | Fully right | Unsafe executions | Missed executions |
+| --- | --- | --- | --- | --- | --- |
+| lexical | default | tune | 23/26 (88.5%) | 0 | 2 |
+| lexical | default | heldout | 25/26 (96.2%) | 0 | 1 |
+| embedding | default | tune | 25/26 (96.2%) | 0 | 1 |
+| embedding | default | heldout | 24/26 (92.3%) | 0 | 1 |
+| embedding | tuned | tune | 26/26 (100.0%) | 0 | 0 |
+| embedding | tuned | heldout | 24/26 (92.3%) | 0 | 1 |
+
+### SDE cascade (20 records: 10 tune, 10 held-out)
+
+| Engine | Fire threshold | Split | Right | Missed bad records | Needless escalations |
+| --- | --- | --- | --- | --- | --- |
+| lexical | 0.7 | tune | 6/10 | 4 | 0 |
+| lexical | 0.7 | heldout | 9/10 | 1 | 0 |
+| embedding | 0.7 | tune | 6/10 | 4 | 0 |
+| embedding | 0.7 | heldout | 9/10 | 1 | 0 |
+| embedding | 0.38 | tune | 9/10 | 1 | 0 |
+| embedding | 0.38 | heldout | 9/10 | 1 | 0 |
+
+### Consistency (12 claims: 6 tune, 6 held-out)
+
+| Engine | Gates | Split | Right | Wrong auto-pays | Wrong denials |
+| --- | --- | --- | --- | --- | --- |
+| lexical | default | tune | 3/6 | 3 | 0 |
+| lexical | default | heldout | 3/6 | 3 | 0 |
+| embedding | default | tune | 3/6 | 3 | 0 |
+| embedding | default | heldout | 3/6 | 3 | 0 |
+| embedding | tuned | tune | 1/6 | 1 | 0 |
+| embedding | tuned | heldout | 1/6 | 1 | 0 |
+
+### Gold suite, odd half (10 noul assertions, not used to fit the engine)
+
+| Noul cut | Accuracy |
+| --- | --- |
+| 0.1 (best) | 9/10 (90.0%) |
+| 0.5 | 8/10 (80.0%) |
+| 0.7 | 8/10 (80.0%) |
+<!-- END GENERATED -->
+
+## What the numbers say
+
+- **Smart home.** Only `allow` moved (0.5 to 0.35). The embedding engine's `allow`
+  noul puts some ordinary commands between 0.35 and 0.5, for example "turn off
+  the bedroom fan" at 0.39. On the held-out half the tuned set scores the same as
+  the hand-set gates, with no unsafe executions. Every off-property row is caught
+  by the keyword rule, not by the engine's `allow`.
+- **Cascade.** The fire threshold dropped from 0.7 to 0.38. On the embedding engine
+  a wrongly empty field scores between 0.47 and 0.82 P(wrong), so 0.7 let most of
+  them through. Each half has one miss the verifier cannot catch at any
+  threshold: a value that appears in the source but was put in the wrong field
+  (VAT = the freight amount, total = the subtotal). The source-support rule caps
+  these at 0.28.
+- **Consistency.** No threshold makes this cookbook correct on the embedding
+  engine. On these claims its `pay` noul is flat: 0.825 for every claim, and 0.999
+  for the two that most need a human. `deny` never goes above 0.02, even for a
+  lapsed or cancelled policy. The tuned gates cut wrong auto-pays from 3 to 1 on
+  each half by sending more claims to human review. Correct decisions drop from
+  3 of 6 to 1 of 6, because genuine pay claims now go to review too. The demo claim now goes to
+  human review on this engine instead of being paid. For real claim adjudication,
+  use `model: "auto"` (escalates low-confidence answers to an LLM) or fit a
+  per-customer calibration. Do not rely on these gates.
+- These sets are small (52, 20 and 12 rows) and we wrote them ourselves. Treat the
+  numbers as a regression check on the cookbook logic and the gates, not as an
+  accuracy claim for any engine.

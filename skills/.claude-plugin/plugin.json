@@ -1,0 +1,12 @@
+{
+  "name": "openjev",
+  "version": "0.5.7",
+  "description": "Agent skills for building with the OpenJev System One API (wire-compatible with TypeSafe System One v1).",
+  "author": {
+    "name": "openjev contributors",
+    "url": "https://github.com/caelum0x/openjev"
+  },
+  "homepage": "https://github.com/caelum0x/openjev",
+  "repository": "https://github.com/caelum0x/openjev",
+  "license": "MIT"
+}

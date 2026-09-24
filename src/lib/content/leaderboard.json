@@ -1,0 +1,618 @@
+{
+  "generated_at": "2026-09-24",
+  "harness": "scripts/leaderboard.mjs + src/lib/jev/leaderboard.ts + src/lib/jev/public-datasets.ts",
+  "embedding_engine": {
+    "encoder": "gte-small",
+    "fitted_on": "Banking77 train, CLINC150 validation and the even half of the gold suite (choice/score temperature and lexical blend); CLINC150 validation (out-of-scope detector; operating point = 5% of held-out in-scope questions); even half of the gold suite (noul). No leaderboard test split was used."
+  },
+  "datasets": {
+    "gold_cases": 93,
+    "ood_pairs": 150
+  },
+  "rows": [
+    {
+      "id": "system-one",
+      "label": "System One, embedding engine (gte-small)",
+      "kind": "local",
+      "status": "ok",
+      "gold": {
+        "cases": 93,
+        "strict_pass_rate": 0.8852,
+        "accuracy": 0.8247,
+        "avg_confidence": 0.8304,
+        "ece": 0.0446,
+        "brier": 0.1308
+      },
+      "ood": {
+        "pairs": 150,
+        "flag_rate": 0.6133,
+        "confident_rate": 0.0267,
+        "mean_confidence": 0.3201
+      },
+      "errors": 0
+    },
+    {
+      "id": "system-one-lexical",
+      "label": "System One, lexical engine (fallback)",
+      "kind": "local",
+      "status": "ok",
+      "gold": {
+        "cases": 93,
+        "strict_pass_rate": 1,
+        "accuracy": 0.8557,
+        "avg_confidence": 0.8595,
+        "ece": 0.0791,
+        "brier": 0.1265
+      },
+      "ood": {
+        "pairs": 150,
+        "flag_rate": 0.9467,
+        "confident_rate": 0.02,
+        "mean_confidence": 0.0448
+      },
+      "errors": 0
+    },
+    {
+      "id": "jev-v13",
+      "label": "Sharp (lexical)",
+      "kind": "local",
+      "status": "ok",
+      "gold": {
+        "cases": 93,
+        "strict_pass_rate": 1,
+        "accuracy": 0.8557,
+        "avg_confidence": 0.8599,
+        "ece": 0.0715,
+        "brier": 0.1262
+      },
+      "ood": {
+        "pairs": 150,
+        "flag_rate": 0.9467,
+        "confident_rate": 0.02,
+        "mean_confidence": 0.045
+      },
+      "errors": 0
+    },
+    {
+      "id": "decisive",
+      "label": "Decisive (lexical)",
+      "kind": "local",
+      "status": "ok",
+      "gold": {
+        "cases": 93,
+        "strict_pass_rate": 1,
+        "accuracy": 0.8557,
+        "avg_confidence": 0.8664,
+        "ece": 0.0895,
+        "brier": 0.1279
+      },
+      "ood": {
+        "pairs": 150,
+        "flag_rate": 0.9467,
+        "confident_rate": 0.0267,
+        "mean_confidence": 0.0468
+      },
+      "errors": 0
+    },
+    {
+      "id": "contrastive",
+      "label": "Contrastive (lexical)",
+      "kind": "local",
+      "status": "ok",
+      "gold": {
+        "cases": 93,
+        "strict_pass_rate": 1,
+        "accuracy": 0.8557,
+        "avg_confidence": 0.8585,
+        "ece": 0.058,
+        "brier": 0.1285
+      },
+      "ood": {
+        "pairs": 150,
+        "flag_rate": 0.9467,
+        "confident_rate": 0.0133,
+        "mean_confidence": 0.0419
+      },
+      "errors": 0
+    },
+    {
+      "id": "system-one-noscope",
+      "label": "System One without scope layer (ablation, embedding engine)",
+      "kind": "ablation",
+      "status": "ok",
+      "gold": {
+        "cases": 93,
+        "strict_pass_rate": 0.8852,
+        "accuracy": 0.8247,
+        "avg_confidence": 0.8325,
+        "ece": 0.0426,
+        "brier": 0.1271
+      },
+      "ood": {
+        "pairs": 150,
+        "flag_rate": 0.2,
+        "confident_rate": 0.04,
+        "mean_confidence": 0.6373
+      },
+      "errors": 0
+    },
+    {
+      "id": "otsone-1",
+      "label": "OpenJev One (otsone-1)",
+      "kind": "neural",
+      "status": "not_run",
+      "reason": "otsone sidecar not reachable (OTSONE_MODEL_URL)"
+    },
+    {
+      "id": "laya-mlx",
+      "label": "Laya",
+      "kind": "neural",
+      "status": "not_run",
+      "reason": "Laya sidecar not reachable (LAYA_ENGINE_URL)"
+    },
+    {
+      "id": "llm",
+      "label": "LLM (verbalized confidence)",
+      "kind": "llm",
+      "status": "not_run",
+      "reason": "LLM rows are opt-in: re-run with LEADERBOARD_INCLUDE_LLM=1"
+    },
+    {
+      "id": "auto",
+      "label": "Auto cascade",
+      "kind": "cascade",
+      "status": "not_run",
+      "reason": "LLM rows are opt-in: re-run with LEADERBOARD_INCLUDE_LLM=1"
+    },
+    {
+      "id": "cloud",
+      "label": "Hosted System One (e.g. Jev)",
+      "kind": "cloud",
+      "status": "not_run",
+      "reason": "cloud endpoint not configured (TYPESAFE_API_KEY + TYPESAFE_BASE_URL)"
+    }
+  ],
+  "public_tracks": [
+    {
+      "id": "banking77",
+      "name": "Banking77",
+      "description": "Online-banking customer queries, 77 fine-grained intents.",
+      "homepage": "https://github.com/PolyAI-LDN/task-specific-datasets",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "classes": 77,
+      "total": 3080,
+      "sampled": 3080,
+      "oos_sampled": 0,
+      "rows": [
+        {
+          "id": "system-one",
+          "label": "System One, embedding engine (gte-small)",
+          "kind": "local",
+          "status": "ok",
+          "n": 3080,
+          "accuracy": 0.6244,
+          "ece": 0.0347,
+          "brier": 0.1619,
+          "avg_confidence": 0.6569,
+          "errors": 0
+        },
+        {
+          "id": "system-one-lexical",
+          "label": "System One, lexical engine (fallback)",
+          "kind": "local",
+          "status": "ok",
+          "n": 3080,
+          "accuracy": 0.3873,
+          "ece": 0.4745,
+          "brier": 0.4462,
+          "avg_confidence": 0.8618,
+          "errors": 0
+        },
+        {
+          "id": "jev-v13",
+          "label": "Sharp (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 3080,
+          "accuracy": 0.3886,
+          "ece": 0.477,
+          "brier": 0.4481,
+          "avg_confidence": 0.8656,
+          "errors": 0
+        },
+        {
+          "id": "decisive",
+          "label": "Decisive (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 3080,
+          "accuracy": 0.3922,
+          "ece": 0.49,
+          "brier": 0.461,
+          "avg_confidence": 0.8822,
+          "errors": 0
+        },
+        {
+          "id": "contrastive",
+          "label": "Contrastive (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 3080,
+          "accuracy": 0.374,
+          "ece": 0.4932,
+          "brier": 0.4697,
+          "avg_confidence": 0.8672,
+          "errors": 0
+        },
+        {
+          "id": "system-one-noscope",
+          "label": "System One without scope layer (ablation, embedding engine)",
+          "kind": "ablation",
+          "status": "ok",
+          "n": 3080,
+          "accuracy": 0.6244,
+          "ece": 0.0349,
+          "brier": 0.1617,
+          "avg_confidence": 0.6573,
+          "errors": 0
+        },
+        {
+          "id": "otsone-1",
+          "label": "OpenJev One (otsone-1)",
+          "kind": "neural",
+          "status": "not_run",
+          "reason": "otsone sidecar not reachable (OTSONE_MODEL_URL)"
+        },
+        {
+          "id": "laya-mlx",
+          "label": "Laya",
+          "kind": "neural",
+          "status": "not_run",
+          "reason": "Laya sidecar not reachable (LAYA_ENGINE_URL)"
+        },
+        {
+          "id": "llm",
+          "label": "LLM (verbalized confidence)",
+          "kind": "llm",
+          "status": "not_run",
+          "reason": "LLM rows are opt-in: re-run with LEADERBOARD_INCLUDE_LLM=1"
+        },
+        {
+          "id": "auto",
+          "label": "Auto cascade",
+          "kind": "cascade",
+          "status": "not_run",
+          "reason": "LLM rows are opt-in: re-run with LEADERBOARD_INCLUDE_LLM=1"
+        },
+        {
+          "id": "cloud",
+          "label": "Hosted System One (e.g. Jev)",
+          "kind": "cloud",
+          "status": "not_run",
+          "reason": "cloud endpoint not configured (TYPESAFE_API_KEY + TYPESAFE_BASE_URL)"
+        }
+      ]
+    },
+    {
+      "id": "clinc150_oos",
+      "name": "CLINC150 + out-of-scope",
+      "description": "Assistant queries over 150 intents in 10 domains, plus queries that fit none of them.",
+      "homepage": "https://huggingface.co/datasets/clinc/clinc_oos",
+      "license": "CC-BY-3.0",
+      "split": "test",
+      "classes": 150,
+      "total": 5500,
+      "sampled": 5500,
+      "oos_sampled": 1000,
+      "rows": [
+        {
+          "id": "system-one",
+          "label": "System One, embedding engine (gte-small)",
+          "kind": "local",
+          "status": "ok",
+          "n": 4500,
+          "accuracy": 0.6744,
+          "ece": 0.0551,
+          "brier": 0.1623,
+          "avg_confidence": 0.6431,
+          "errors": 0,
+          "ood": {
+            "n": 1000,
+            "flag_rate_at_5_fpr": 0.574,
+            "threshold": 0.9286,
+            "auroc": 0.887,
+            "auroc_ood_field": 0.9099,
+            "confident_rate": 0.023,
+            "at_shipped_threshold": {
+              "threshold": 0.6,
+              "flag_rate": 0.711,
+              "false_positive_rate": 0.0951
+            }
+          }
+        },
+        {
+          "id": "system-one-lexical",
+          "label": "System One, lexical engine (fallback)",
+          "kind": "local",
+          "status": "ok",
+          "n": 4500,
+          "accuracy": 0.1189,
+          "ece": 0.8421,
+          "brier": 0.8312,
+          "avg_confidence": 0.961,
+          "errors": 0,
+          "ood": {
+            "n": 1000,
+            "flag_rate_at_5_fpr": 0.001,
+            "threshold": 0.2943,
+            "auroc": 0.6326,
+            "auroc_ood_field": 0.6832,
+            "confident_rate": 0.984,
+            "at_shipped_threshold": {
+              "threshold": 0.6,
+              "flag_rate": 0,
+              "false_positive_rate": 0
+            }
+          }
+        },
+        {
+          "id": "jev-v13",
+          "label": "Sharp (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 4500,
+          "accuracy": 0.122,
+          "ece": 0.8401,
+          "brier": 0.8302,
+          "avg_confidence": 0.9621,
+          "errors": 0,
+          "ood": {
+            "n": 1000,
+            "flag_rate_at_5_fpr": 0.001,
+            "threshold": 0.2943,
+            "auroc": 0.6337,
+            "auroc_ood_field": 0.684,
+            "confident_rate": 0.984,
+            "at_shipped_threshold": {
+              "threshold": 0.6,
+              "flag_rate": 0,
+              "false_positive_rate": 0
+            }
+          }
+        },
+        {
+          "id": "decisive",
+          "label": "Decisive (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 4500,
+          "accuracy": 0.1273,
+          "ece": 0.8399,
+          "brier": 0.8327,
+          "avg_confidence": 0.9673,
+          "errors": 0,
+          "ood": {
+            "n": 1000,
+            "flag_rate_at_5_fpr": 0.001,
+            "threshold": 0.2943,
+            "auroc": 0.6381,
+            "auroc_ood_field": 0.6849,
+            "confident_rate": 0.984,
+            "at_shipped_threshold": {
+              "threshold": 0.6,
+              "flag_rate": 0,
+              "false_positive_rate": 0
+            }
+          }
+        },
+        {
+          "id": "contrastive",
+          "label": "Contrastive (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 4500,
+          "accuracy": 0.0949,
+          "ece": 0.8733,
+          "brier": 0.858,
+          "avg_confidence": 0.9682,
+          "errors": 0,
+          "ood": {
+            "n": 1000,
+            "flag_rate_at_5_fpr": 0.001,
+            "threshold": 0.2943,
+            "auroc": 0.646,
+            "auroc_ood_field": 0.6853,
+            "confident_rate": 0.983,
+            "at_shipped_threshold": {
+              "threshold": 0.6,
+              "flag_rate": 0,
+              "false_positive_rate": 0
+            }
+          }
+        },
+        {
+          "id": "system-one-noscope",
+          "label": "System One without scope layer (ablation, embedding engine)",
+          "kind": "ablation",
+          "status": "ok",
+          "n": 4500,
+          "accuracy": 0.6744,
+          "ece": 0.0365,
+          "brier": 0.1534,
+          "avg_confidence": 0.6619,
+          "errors": 0,
+          "ood": {
+            "n": 1000,
+            "flag_rate_at_5_fpr": 0.458,
+            "threshold": 0.8572,
+            "auroc": 0.8752,
+            "auroc_ood_field": 0.9099,
+            "confident_rate": 0.025,
+            "at_shipped_threshold": {
+              "threshold": 0.6,
+              "flag_rate": 0.711,
+              "false_positive_rate": 0.0951
+            }
+          }
+        },
+        {
+          "id": "otsone-1",
+          "label": "OpenJev One (otsone-1)",
+          "kind": "neural",
+          "status": "not_run",
+          "reason": "otsone sidecar not reachable (OTSONE_MODEL_URL)"
+        },
+        {
+          "id": "laya-mlx",
+          "label": "Laya",
+          "kind": "neural",
+          "status": "not_run",
+          "reason": "Laya sidecar not reachable (LAYA_ENGINE_URL)"
+        },
+        {
+          "id": "llm",
+          "label": "LLM (verbalized confidence)",
+          "kind": "llm",
+          "status": "not_run",
+          "reason": "LLM rows are opt-in: re-run with LEADERBOARD_INCLUDE_LLM=1"
+        },
+        {
+          "id": "auto",
+          "label": "Auto cascade",
+          "kind": "cascade",
+          "status": "not_run",
+          "reason": "LLM rows are opt-in: re-run with LEADERBOARD_INCLUDE_LLM=1"
+        },
+        {
+          "id": "cloud",
+          "label": "Hosted System One (e.g. Jev)",
+          "kind": "cloud",
+          "status": "not_run",
+          "reason": "cloud endpoint not configured (TYPESAFE_API_KEY + TYPESAFE_BASE_URL)"
+        }
+      ]
+    },
+    {
+      "id": "ag_news",
+      "name": "AG News",
+      "description": "News articles in four topics.",
+      "homepage": "https://huggingface.co/datasets/fancyzhx/ag_news",
+      "license": "See the dataset card",
+      "split": "test",
+      "classes": 4,
+      "total": 7600,
+      "sampled": 7600,
+      "oos_sampled": 0,
+      "rows": [
+        {
+          "id": "system-one",
+          "label": "System One, embedding engine (gte-small)",
+          "kind": "local",
+          "status": "ok",
+          "n": 7600,
+          "accuracy": 0.7499,
+          "ece": 0.0527,
+          "brier": 0.1661,
+          "avg_confidence": 0.8024,
+          "errors": 0
+        },
+        {
+          "id": "system-one-lexical",
+          "label": "System One, lexical engine (fallback)",
+          "kind": "local",
+          "status": "ok",
+          "n": 7600,
+          "accuracy": 0.357,
+          "ece": 0.4246,
+          "brier": 0.4025,
+          "avg_confidence": 0.7816,
+          "errors": 0
+        },
+        {
+          "id": "jev-v13",
+          "label": "Sharp (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 7600,
+          "accuracy": 0.3571,
+          "ece": 0.4248,
+          "brier": 0.4027,
+          "avg_confidence": 0.7819,
+          "errors": 0
+        },
+        {
+          "id": "decisive",
+          "label": "Decisive (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 7600,
+          "accuracy": 0.3574,
+          "ece": 0.4261,
+          "brier": 0.4038,
+          "avg_confidence": 0.7835,
+          "errors": 0
+        },
+        {
+          "id": "contrastive",
+          "label": "Contrastive (lexical)",
+          "kind": "local",
+          "status": "ok",
+          "n": 7600,
+          "accuracy": 0.3566,
+          "ece": 0.4258,
+          "brier": 0.4032,
+          "avg_confidence": 0.7824,
+          "errors": 0
+        },
+        {
+          "id": "system-one-noscope",
+          "label": "System One without scope layer (ablation, embedding engine)",
+          "kind": "ablation",
+          "status": "ok",
+          "n": 7600,
+          "accuracy": 0.7499,
+          "ece": 0.0528,
+          "brier": 0.1659,
+          "avg_confidence": 0.8027,
+          "errors": 0
+        },
+        {
+          "id": "otsone-1",
+          "label": "OpenJev One (otsone-1)",
+          "kind": "neural",
+          "status": "not_run",
+          "reason": "otsone sidecar not reachable (OTSONE_MODEL_URL)"
+        },
+        {
+          "id": "laya-mlx",
+          "label": "Laya",
+          "kind": "neural",
+          "status": "not_run",
+          "reason": "Laya sidecar not reachable (LAYA_ENGINE_URL)"
+        },
+        {
+          "id": "llm",
+          "label": "LLM (verbalized confidence)",
+          "kind": "llm",
+          "status": "not_run",
+          "reason": "LLM rows are opt-in: re-run with LEADERBOARD_INCLUDE_LLM=1"
+        },
+        {
+          "id": "auto",
+          "label": "Auto cascade",
+          "kind": "cascade",
+          "status": "not_run",
+          "reason": "LLM rows are opt-in: re-run with LEADERBOARD_INCLUDE_LLM=1"
+        },
+        {
+          "id": "cloud",
+          "label": "Hosted System One (e.g. Jev)",
+          "kind": "cloud",
+          "status": "not_run",
+          "reason": "cloud endpoint not configured (TYPESAFE_API_KEY + TYPESAFE_BASE_URL)"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "openjev-skills",
+  "version": "0.5.7",
+  "private": true,
+  "description": "Agent skills for building with the OpenJev System One API (wire-compatible with TypeSafe System One v1).",
+  "license": "MIT",
+  "homepage": "https://github.com/caelum0x/openjev/tree/main/skills",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caelum0x/openjev.git",
+    "directory": "skills"
+  },
+  "scripts": {
+    "test": "node scripts/validate.mjs",
+    "build": "node scripts/validate.mjs"
+  }
+}

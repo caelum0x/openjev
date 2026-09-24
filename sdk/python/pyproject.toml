@@ -1,0 +1,101 @@
+[project]
+name = "openjev"
+version = "0.7.1"
+description = "OpenJev: an open, wire-compatible Python SDK for the TypeSafe System One /v1 API (api.typesafe.ai or a self-hosted OpenJev endpoint)."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
+authors = [
+    { name = "openjev contributors" }
+]
+maintainers = [
+    { name = "caelum0x" }
+]
+requires-python = ">=3.10"
+keywords = ["openjev", "typesafe", "sdk", "api", "ai", "system-one"]
+classifiers = [
+    "Typing :: Typed",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "httpx2>=2.0.0",
+    "pydantic>=2.12.0",
+    "pydantic-core>=2.41.1",
+    "tenacity>=9.0.0",
+    "typing-extensions>=4.13.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/caelum0x/openjev/tree/main/sdk/python"
+Documentation = "https://github.com/caelum0x/openjev/tree/main/sdk/python#readme"
+Changelog = "https://github.com/caelum0x/openjev/blob/main/sdk/python/docs/changelog.md"
+Repository = "https://github.com/caelum0x/openjev"
+Issues = "https://github.com/caelum0x/openjev/issues"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# `opentypesafe_sdk` is a thin deprecated alias for the pre-rename import name.
+module-name = ["openjev", "opentypesafe_sdk"]
+
+[dependency-groups]
+dev = [
+    "gitpython>=3.1.62",
+    "pyrefly>=1.2.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.6",
+    "sybil>=9.3.0",
+    "syrupy>=6.0.0",
+    "tach>=0.35.0",
+]
+docs = [
+    "griffe-pydantic>=1.3.1",
+    "mkdocstrings[python]>=1.0.6",
+    "ruff>=0.16.6",
+    "zensical>=0.0.60",
+]
+codegen = [
+    "datamodel-code-generator>=0.79.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-vv -ra --capture=tee-sys -p no:tach"
+log_cli = true
+log_cli_level = "INFO"
+log_level = "INFO"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["integration: live API tests requiring TYPESAFE_API_KEY"]
+
+[tool.ruff]
+# The type-checker fixtures under tests/typing anchor expected errors to specific
+# lines via inline `# E:` comments; reformatting them would shift those lines and
+# break the pyrefly expectation tests, so they are excluded from formatting/linting.
+extend-exclude = ["tests/typing"]
+
+[tool.deptry]
+extend_exclude = [".dagger"]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

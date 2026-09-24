@@ -1,0 +1,2079 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OpenJev API",
+    "description": "Typed decisions — Choice, Score, and Noul — with calibrated confidence. One POST returns a typed answer per question over a shared state; no text generated.",
+    "version": "1",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    },
+    "contact": {
+      "name": "OpenJev",
+      "url": "https://github.com/caelum0x/opentypesafe"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Self-hosted (Docker)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Decisions",
+      "description": "Execute typed decisions over a shared state."
+    },
+    {
+      "name": "Status",
+      "description": "Backend health and model availability."
+    },
+    {
+      "name": "Keys",
+      "description": "API key management."
+    },
+    {
+      "name": "Usage",
+      "description": "Token and call usage statistics."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key (ots_live_…) from /keys. Omit or send 'anon' for self-hosted anonymous use."
+      }
+    },
+    "schemas": {
+      "ChoiceQuestion": {
+        "type": "object",
+        "required": [
+          "type",
+          "instructions",
+          "criteria"
+        ],
+        "description": "Classify the state into exactly one of the labelled options.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "choice"
+            ]
+          },
+          "instructions": {
+            "description": "The question. Backtick-wrap state keys to reference them, e.g. 'Intent of `ticket`?'."
+          },
+          "criteria": {
+            "type": "object",
+            "description": "Map of label key → description. Keys become the valid output labels (2–255 entries).",
+            "additionalProperties": {}
+          },
+          "abstain": {
+            "type": "boolean",
+            "description": "Opt into abstention: when the input is out of scope or confidence is below abstain_below, the answer comes back with abstained: true (choice answers pick the reserved __none__ option)."
+          },
+          "abstain_below": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence floor for abstention. Implies abstain: true."
+          },
+          "escalate_below": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "auto model only: escalate this question to the LLM when its local confidence is below this value."
+          }
+        }
+      },
+      "ScoreQuestion": {
+        "type": "object",
+        "required": [
+          "type",
+          "instructions",
+          "criteria"
+        ],
+        "description": "Rate the state on an ordered scale of 2–10 rubric levels.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "score"
+            ]
+          },
+          "instructions": {
+            "description": "The rubric question."
+          },
+          "criteria": {
+            "type": "array",
+            "description": "Ordered array of level descriptions, from lowest to highest. The array index is the returned score value.",
+            "items": {},
+            "minItems": 2,
+            "maxItems": 10
+          },
+          "abstain": {
+            "type": "boolean",
+            "description": "Opt into abstention: when the input is out of scope or confidence is below abstain_below, the answer comes back with abstained: true (choice answers pick the reserved __none__ option)."
+          },
+          "abstain_below": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence floor for abstention. Implies abstain: true."
+          },
+          "escalate_below": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "auto model only: escalate this question to the LLM when its local confidence is below this value."
+          }
+        }
+      },
+      "NoulQuestion": {
+        "type": "object",
+        "required": [
+          "type",
+          "instructions"
+        ],
+        "description": "Return a calibrated P(yes) for a single yes/no proposition.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "noul"
+            ]
+          },
+          "instructions": {
+            "description": "A yes/no proposition, e.g. 'Does `reply` leak PII?'"
+          },
+          "criteria": {
+            "type": "object",
+            "properties": {
+              "true": {
+                "description": "Description for the affirmative case."
+              },
+              "false": {
+                "description": "Description for the negative case."
+              }
+            }
+          },
+          "abstain": {
+            "type": "boolean",
+            "description": "Opt into abstention: when the input is out of scope or confidence is below abstain_below, the answer comes back with abstained: true (choice answers pick the reserved __none__ option)."
+          },
+          "abstain_below": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence floor for abstention. Implies abstain: true."
+          },
+          "escalate_below": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "auto model only: escalate this question to the LLM when its local confidence is below this value."
+          }
+        }
+      },
+      "Question": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChoiceQuestion"
+          },
+          {
+            "$ref": "#/components/schemas/ScoreQuestion"
+          },
+          {
+            "$ref": "#/components/schemas/NoulQuestion"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "choice": "#/components/schemas/ChoiceQuestion",
+            "score": "#/components/schemas/ScoreQuestion",
+            "noul": "#/components/schemas/NoulQuestion"
+          }
+        }
+      },
+      "ChoiceAnswer": {
+        "type": "object",
+        "required": [
+          "type",
+          "choice",
+          "probabilities",
+          "confidence"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "choice"
+            ]
+          },
+          "choice": {
+            "type": "string",
+            "description": "The winning label key."
+          },
+          "probabilities": {
+            "type": "object",
+            "description": "Full distribution: every option key → probability. Sums to 1.",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Calibrated confidence for the winning label. Gate actions on this value."
+          },
+          "ood": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Out-of-scope score (distance of the state from the question vocabulary, modulated by answer entropy). >= 0.6 means out of scope."
+          },
+          "abstained": {
+            "type": "boolean",
+            "description": "Present and true when the model said 'I don't know' (abstention opted in)."
+          },
+          "abstain_reason": {
+            "type": "string",
+            "enum": [
+              "out_of_scope",
+              "low_confidence"
+            ]
+          },
+          "p_none": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Probability mass on 'none of the above / I don't know'."
+          },
+          "calibrated": {
+            "type": "boolean",
+            "description": "True when a customer calibration map rewrote this answer's confidence."
+          },
+          "escalated": {
+            "type": "boolean",
+            "description": "True when the auto model re-asked this question to an LLM."
+          }
+        }
+      },
+      "ScoreAnswer": {
+        "type": "object",
+        "required": [
+          "type",
+          "score",
+          "probabilities",
+          "confidence"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "score"
+            ]
+          },
+          "score": {
+            "type": "number",
+            "description": "The winning level index (matches the position in the criteria array)."
+          },
+          "legend": {
+            "type": "object",
+            "description": "Map of level index → description, for display.",
+            "additionalProperties": {}
+          },
+          "probabilities": {
+            "type": "object",
+            "description": "Full distribution over levels.",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "ood": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Out-of-scope score (distance of the state from the question vocabulary, modulated by answer entropy). >= 0.6 means out of scope."
+          },
+          "abstained": {
+            "type": "boolean",
+            "description": "Present and true when the model said 'I don't know' (abstention opted in)."
+          },
+          "abstain_reason": {
+            "type": "string",
+            "enum": [
+              "out_of_scope",
+              "low_confidence"
+            ]
+          },
+          "p_none": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Probability mass on 'none of the above / I don't know'."
+          },
+          "calibrated": {
+            "type": "boolean",
+            "description": "True when a customer calibration map rewrote this answer's confidence."
+          },
+          "escalated": {
+            "type": "boolean",
+            "description": "True when the auto model re-asked this question to an LLM."
+          }
+        }
+      },
+      "NoulAnswer": {
+        "type": "object",
+        "required": [
+          "type",
+          "noul"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "noul"
+            ]
+          },
+          "noul": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Calibrated P(yes). Gate at your chosen threshold, e.g. > 0.7 for high-confidence yes."
+          },
+          "ood": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Out-of-scope score (distance of the state from the question vocabulary, modulated by answer entropy). >= 0.6 means out of scope."
+          },
+          "abstained": {
+            "type": "boolean",
+            "description": "Present and true when the model said 'I don't know' (abstention opted in)."
+          },
+          "abstain_reason": {
+            "type": "string",
+            "enum": [
+              "out_of_scope",
+              "low_confidence"
+            ]
+          },
+          "p_none": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Probability mass on 'none of the above / I don't know'."
+          },
+          "calibrated": {
+            "type": "boolean",
+            "description": "True when a customer calibration map rewrote this answer's confidence."
+          },
+          "escalated": {
+            "type": "boolean",
+            "description": "True when the auto model re-asked this question to an LLM."
+          }
+        }
+      },
+      "Answer": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChoiceAnswer"
+          },
+          {
+            "$ref": "#/components/schemas/ScoreAnswer"
+          },
+          {
+            "$ref": "#/components/schemas/NoulAnswer"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "choice": "#/components/schemas/ChoiceAnswer",
+            "score": "#/components/schemas/ScoreAnswer",
+            "noul": "#/components/schemas/NoulAnswer"
+          }
+        }
+      },
+      "SystemOneRequest": {
+        "type": "object",
+        "required": [
+          "state",
+          "questions"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model id. Defaults to system-one (the always-on local engine). See GET /api/v1/status for which models are available on this deployment. `auto` is the cascade: local first, LLM only for low-confidence or out-of-scope questions.",
+            "enum": [
+              "auto",
+              "system-one",
+              "jev-sharp",
+              "jev-decisive",
+              "jev-contrastive",
+              "laya-mlx",
+              "laya-onnx",
+              "openjev-grok",
+              "system-one-cloud",
+              "otsone-1",
+              "otsone-mini"
+            ],
+            "default": "system-one"
+          },
+          "state": {
+            "description": "The shared context for every question in this request. Can be a plain string, a structured object, or an array.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array",
+                "items": {}
+              }
+            ]
+          },
+          "questions": {
+            "type": "object",
+            "description": "Map of answer key → typed question. Each key becomes a matching key in the returned `answers` object.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Question"
+            },
+            "minProperties": 1
+          },
+          "abstain": {
+            "type": "boolean",
+            "description": "Request-wide abstention default."
+          },
+          "abstain_below": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "escalate_below": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "auto model: request-wide escalation threshold (default 0.6 or OTS_AUTO_ESCALATE_BELOW)."
+          },
+          "calibration_id": {
+            "type": "string",
+            "pattern": "^cal_[a-z0-9]{4,40}$",
+            "description": "Apply a calibration fitted on your labels (POST /api/v1/calibrations). Requires an authenticated caller."
+          }
+        }
+      },
+      "SystemOneResponse": {
+        "type": "object",
+        "required": [
+          "model",
+          "answers",
+          "usage",
+          "latency_ms"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "The model id that produced this response."
+          },
+          "answers": {
+            "type": "object",
+            "description": "Map of answer key → typed answer. Keys match the `questions` map in the request.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Answer"
+            }
+          },
+          "usage": {
+            "type": "object",
+            "required": [
+              "input_tokens",
+              "output_tokens"
+            ],
+            "properties": {
+              "input_tokens": {
+                "type": "integer",
+                "description": "Tokens consumed reading state and questions."
+              },
+              "output_tokens": {
+                "type": "integer",
+                "description": "Tokens generated (near-zero for local backends)."
+              }
+            }
+          },
+          "latency_ms": {
+            "type": "number",
+            "description": "End-to-end decision latency in milliseconds."
+          },
+          "fallback": {
+            "type": "object",
+            "description": "Present when the requested backend was unavailable and the local engine answered instead.",
+            "properties": {
+              "requested": {
+                "type": "string",
+                "description": "The model id the caller asked for."
+              },
+              "served": {
+                "type": "string",
+                "description": "The model id that actually produced the answer."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Stable machine-readable reason, e.g. laya_sidecar_unavailable."
+              },
+              "detail": {
+                "type": "string",
+                "description": "Human-readable explanation."
+              }
+            }
+          },
+          "escalation": {
+            "type": "object",
+            "description": "auto model only: which questions escalated to the LLM and why.",
+            "properties": {
+              "local_model": {
+                "type": "string"
+              },
+              "escalated": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "kept": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "needed": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "provider": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "llm_model": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "skipped_reason": {
+                "type": "string",
+                "enum": [
+                  "no_llm_configured",
+                  "rate_limited",
+                  "llm_error"
+                ]
+              }
+            }
+          },
+          "calibration": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "temperature",
+                  "isotonic"
+                ]
+              },
+              "questions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "skipped_reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "type",
+              "message"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "invalid_request",
+                  "rate_limit",
+                  "internal",
+                  "unauthorized",
+                  "not_found",
+                  "plan_required",
+                  "report_signing_not_configured",
+                  "invalid_calibration_id",
+                  "invalid_json",
+                  "payload_too_large"
+                ],
+                "description": "Stable error type for programmatic handling."
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error description."
+              },
+              "used": {
+                "type": "integer",
+                "description": "Calls used in the current window (rate_limit only)."
+              },
+              "limit": {
+                "type": "integer",
+                "description": "Limit for this window (rate_limit only)."
+              },
+              "reset_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the window resets (rate_limit only)."
+              }
+            }
+          }
+        }
+      },
+      "AuditReport": {
+        "type": "object",
+        "description": "Signed calibration audit report. The signature is HMAC-SHA256 over the canonical JSON of every other field (keys sorted, no whitespace).",
+        "required": [
+          "schema",
+          "report_id",
+          "issued_at",
+          "calibration",
+          "questions",
+          "skipped",
+          "drift",
+          "shadow",
+          "limitations",
+          "signature"
+        ],
+        "properties": {
+          "schema": {
+            "type": "string",
+            "const": "openjev.audit-report/v1"
+          },
+          "report_id": {
+            "type": "string",
+            "pattern": "^rep_[0-9a-f]{20}$"
+          },
+          "issued_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issuer": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Public origin of the issuing server, when configured."
+          },
+          "calibration": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "upload",
+                  "eval_run"
+                ]
+              },
+              "eval_run_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "labels": {
+                "type": "integer"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "map": {
+                  "type": "object",
+                  "properties": {
+                    "method": {
+                      "type": "string",
+                      "enum": [
+                        "temperature",
+                        "isotonic"
+                      ]
+                    },
+                    "temperature": {
+                      "type": "number"
+                    },
+                    "knots": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "evaluation": {
+                  "type": "string",
+                  "enum": [
+                    "held_out",
+                    "in_sample",
+                    "unknown"
+                  ]
+                },
+                "labels": {
+                  "type": "integer"
+                },
+                "train_labels": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "heldout_labels": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "raw": {
+                  "$ref": "#/components/schemas/AuditStats"
+                },
+                "calibrated": {
+                  "$ref": "#/components/schemas/AuditStats"
+                },
+                "ece_change": {
+                  "type": "number"
+                },
+                "brier_change": {
+                  "type": "number"
+                },
+                "threshold": {
+                  "type": "object",
+                  "properties": {
+                    "target_precision": {
+                      "type": "number"
+                    },
+                    "recommended": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "threshold": {
+                          "type": "number"
+                        },
+                        "precision": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "coverage": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "question_id": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "drift": {
+            "type": "object",
+            "properties": {
+              "monitor": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "checks": {
+                "type": "integer"
+              },
+              "drift_events": {
+                "type": "integer"
+              },
+              "history": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "checked_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "drift",
+                        "insufficient"
+                      ]
+                    },
+                    "drifted": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "observations": {
+                      "type": "integer"
+                    },
+                    "alerted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "shadow": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "window_days": {
+                "type": "integer"
+              },
+              "pairs": {
+                "type": "integer"
+              },
+              "agreement": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "label_pairs": {
+                "type": "integer"
+              },
+              "label_agreement": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "signature": {
+            "type": "object",
+            "required": [
+              "alg",
+              "key_id",
+              "value"
+            ],
+            "properties": {
+              "alg": {
+                "type": "string",
+                "const": "HMAC-SHA256"
+              },
+              "key_id": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      },
+      "AuditStats": {
+        "type": "object",
+        "properties": {
+          "accuracy": {
+            "type": "number"
+          },
+          "ece": {
+            "type": "number"
+          },
+          "brier": {
+            "type": "number"
+          },
+          "avg_confidence": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/systemone": {
+      "post": {
+        "operationId": "createSystemOne",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Execute typed decisions",
+        "description": "Submit a shared state and one or more typed questions. Returns a calibrated typed answer per question — Choice (label + full distribution), Score (level + distribution), or Noul (calibrated P(yes)). Multiple questions share one state read, so a 13-item checklist is one call.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemOneRequest"
+              },
+              "example": {
+                "state": {
+                  "ticket": "My card was charged twice last Friday."
+                },
+                "questions": {
+                  "category": {
+                    "type": "choice",
+                    "instructions": "Main request in `ticket`?",
+                    "criteria": {
+                      "refund": "Wants money returned.",
+                      "rebooking": "Wants a replacement flight.",
+                      "info": "Asking for information only."
+                    }
+                  },
+                  "severity": {
+                    "type": "score",
+                    "instructions": "Urgency of `ticket` (0 = low, 5 = critical)?",
+                    "criteria": [
+                      "Cosmetic or negligible impact",
+                      "Low — can wait",
+                      "Moderate — within SLA",
+                      "High — same-day response",
+                      "Critical — immediate action",
+                      "Existential — all hands"
+                    ]
+                  },
+                  "is_angry": {
+                    "type": "noul",
+                    "instructions": "Does `ticket` express anger or strong frustration?"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision executed successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOneResponse"
+                },
+                "example": {
+                  "model": "system-one",
+                  "answers": {
+                    "category": {
+                      "type": "choice",
+                      "choice": "refund",
+                      "probabilities": {
+                        "refund": 0.87,
+                        "rebooking": 0.09,
+                        "info": 0.04
+                      },
+                      "confidence": 0.87
+                    },
+                    "severity": {
+                      "type": "score",
+                      "score": 3,
+                      "legend": {
+                        "3": "High — same-day response"
+                      },
+                      "probabilities": {
+                        "0": 0.02,
+                        "1": 0.04,
+                        "2": 0.1,
+                        "3": 0.61,
+                        "4": 0.18,
+                        "5": 0.05
+                      },
+                      "confidence": 0.61
+                    },
+                    "is_angry": {
+                      "type": "noul",
+                      "noul": 0.31
+                    }
+                  },
+                  "usage": {
+                    "input_tokens": 74,
+                    "output_tokens": 0
+                  },
+                  "latency_ms": 4.2
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (missing fields, bad question shape, unknown model).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Allowance exceeded for this key (Railyard integration).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or monthly quota exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getSystemOneInfo",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "API info",
+        "description": "Returns the API name, available model ids, supported primitives, and the wire-compatibility string. No auth required.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "API info.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "name": "openjev",
+                  "models": [
+                    "system-one",
+                    "jev-sharp",
+                    "jev-decisive",
+                    "jev-contrastive",
+                    "laya-mlx",
+                    "laya-onnx",
+                    "openjev-grok",
+                    "system-one-cloud"
+                  ],
+                  "primitives": [
+                    "choice",
+                    "score",
+                    "noul"
+                  ],
+                  "endpoint": "POST /api/v1/systemone",
+                  "compatible": "OpenJev System One v1"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/batch": {
+      "post": {
+        "operationId": "batchSystemOne",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Batch decisions",
+        "description": "Execute multiple independent System One requests in a single HTTP call. Requests in the batch are evaluated in parallel; the response array preserves input order.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "requests"
+                ],
+                "properties": {
+                  "requests": {
+                    "type": "array",
+                    "description": "System One requests to execute in parallel.",
+                    "items": {
+                      "$ref": "#/components/schemas/SystemOneRequest"
+                    },
+                    "minItems": 1,
+                    "maxItems": 100
+                  }
+                }
+              },
+              "example": {
+                "requests": [
+                  {
+                    "state": "This product is fantastic, arrived in two days.",
+                    "questions": {
+                      "sentiment": {
+                        "type": "score",
+                        "instructions": "Sentiment (1 negative … 5 positive)?",
+                        "criteria": [
+                          "Very negative",
+                          "Negative",
+                          "Neutral",
+                          "Positive",
+                          "Very positive"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "state": "Order still hasn't arrived after three weeks.",
+                    "questions": {
+                      "sentiment": {
+                        "type": "score",
+                        "instructions": "Sentiment (1 negative … 5 positive)?",
+                        "criteria": [
+                          "Very negative",
+                          "Negative",
+                          "Neutral",
+                          "Positive",
+                          "Very positive"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "All decisions resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SystemOneResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/validate": {
+      "post": {
+        "operationId": "validateRequest",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Validate a request payload",
+        "description": "Dry-run validation for a System One payload. Returns any schema errors without executing a decision — useful for catching malformed questions before sending to production.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemOneRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "valid"
+                  ],
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Human-readable validation errors. Empty when valid is true."
+                    }
+                  }
+                },
+                "example": {
+                  "valid": true,
+                  "errors": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calibration": {
+      "post": {
+        "operationId": "runCalibration",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Calibration metrics",
+        "description": "Evaluate calibration quality (ECE, Brier score) over a labelled example set. Measures how well the model's confidence tracks observed accuracy on your data, so you can pick operating thresholds with confidence.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "examples"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "description": "Model to evaluate. Defaults to system-one.",
+                    "default": "system-one"
+                  },
+                  "examples": {
+                    "type": "array",
+                    "description": "Labelled examples: each has the System One request and the expected answer per key.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "request",
+                        "gold"
+                      ],
+                      "properties": {
+                        "request": {
+                          "$ref": "#/components/schemas/SystemOneRequest"
+                        },
+                        "gold": {
+                          "type": "object",
+                          "description": "Map of answer key → expected label / level / boolean.",
+                          "additionalProperties": {}
+                        }
+                      }
+                    },
+                    "minItems": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Calibration metrics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model": {
+                      "type": "string"
+                    },
+                    "n": {
+                      "type": "integer",
+                      "description": "Number of examples evaluated."
+                    },
+                    "accuracy": {
+                      "type": "number",
+                      "description": "Fraction of top answers that matched gold."
+                    },
+                    "ece": {
+                      "type": "number",
+                      "description": "Expected calibration error (lower is better; 0 = perfectly calibrated)."
+                    },
+                    "brier": {
+                      "type": "number",
+                      "description": "Mean Brier score over all questions (lower is better)."
+                    }
+                  }
+                },
+                "example": {
+                  "model": "system-one",
+                  "n": 500,
+                  "accuracy": 0.891,
+                  "ece": 0.043,
+                  "brier": 0.118
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "operationId": "getStatus",
+        "tags": [
+          "Status"
+        ],
+        "summary": "Backend health",
+        "description": "Returns health for every backend on this deployment — local (always available), native sidecar, neural (Laya MLX/ONNX), any-LLM, and OpenJev cloud — plus a per-model availability array. Not cached.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Backend status.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "object": "backend_status",
+                  "local": {
+                    "available": true
+                  },
+                  "native": {
+                    "available": false,
+                    "url": "http://localhost:8765",
+                    "engine": null
+                  },
+                  "laya": {
+                    "available": false,
+                    "backend": "onnx",
+                    "url": "http://localhost:8766",
+                    "engine": null
+                  },
+                  "llm": {
+                    "available": false
+                  },
+                  "cloud": {
+                    "available": false
+                  },
+                  "models": [
+                    {
+                      "id": "system-one",
+                      "backend": "local",
+                      "available": true
+                    },
+                    {
+                      "id": "laya-onnx",
+                      "backend": "laya",
+                      "available": false,
+                      "reason": "laya_sidecar_unreachable",
+                      "install": "Start the neural sidecar (Laya). See SELF-HOSTING.md."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "Status"
+        ],
+        "summary": "Liveness / API info",
+        "description": "Lightweight liveness check. Returns API name, version, wire-compatibility info, active engine info, and the endpoint list.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "API is live.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "name": "openjev",
+                  "version": "0.2",
+                  "compatible": "http://localhost:3000/api/v1/systemone",
+                  "engine": {
+                    "backend": "typescript-fallback"
+                  },
+                  "models": [
+                    {
+                      "id": "system-one",
+                      "label": "System One"
+                    }
+                  ],
+                  "endpoints": [
+                    "POST /api/v1/systemone",
+                    "GET /api/v1/models",
+                    "GET /api/v1/status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/keys": {
+      "get": {
+        "operationId": "listKeys",
+        "tags": [
+          "Keys"
+        ],
+        "summary": "List API keys",
+        "description": "Returns all API keys for the authenticated account. Full key values are never returned; only prefix and metadata.",
+        "responses": {
+          "200": {
+            "description": "Keys returned.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "keys": [
+                    {
+                      "id": "key_01hx",
+                      "name": "Production",
+                      "prefix": "ots_live_",
+                      "created_at": "2026-09-01T00:00:00Z",
+                      "last_used_at": "2026-09-23T08:12:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createKey",
+        "tags": [
+          "Keys"
+        ],
+        "summary": "Create API key",
+        "description": "Creates a new API key. The full key value (ots_live_…) is returned exactly once — store it securely. It cannot be retrieved again.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Human-readable label for this key."
+                  }
+                }
+              },
+              "example": {
+                "name": "Production"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Key created.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "key_01hx",
+                  "name": "Production",
+                  "key": "ots_live_xxxxxxxxxxxxxxxxxxxx",
+                  "created_at": "2026-09-23T09:00:00Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/usage": {
+      "get": {
+        "operationId": "getUsage",
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Usage statistics",
+        "description": "Returns token and call counts for the authenticated key, broken down by model and period.",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "description": "Aggregation period.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month"
+              ],
+              "default": "month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage data.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "period": "month",
+                  "total_calls": 14820,
+                  "total_input_tokens": 1092400,
+                  "total_output_tokens": 420,
+                  "by_model": [
+                    {
+                      "model": "system-one",
+                      "calls": 14100,
+                      "input_tokens": 1039800
+                    },
+                    {
+                      "model": "openjev-grok",
+                      "calls": 720,
+                      "input_tokens": 52600
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calibrations": {
+      "get": {
+        "operationId": "listCalibrations",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "List calibrations, or get one with ?id=cal_...",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calibration list or detail"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createCalibration",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Fit a per-question calibration from your labelled examples",
+        "description": "Each example is answered by `model` and graded against its labels; a temperature or isotonic map is fitted per question (10+ labels each; a pooled map covers the rest). Or pass eval_run_id to fit from an eval run. Apply with calibration_id on /api/v1/systemone.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "type": "string",
+                    "default": "system-one"
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "temperature",
+                      "isotonic"
+                    ]
+                  },
+                  "target_precision": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 0.95
+                  },
+                  "questions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/Question"
+                    }
+                  },
+                  "examples": {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "state",
+                        "labels"
+                      ],
+                      "properties": {
+                        "state": {},
+                        "labels": {
+                          "type": "object",
+                          "description": "question id -> label: option key (choice), level index (score), boolean (noul)"
+                        }
+                      }
+                    }
+                  },
+                  "eval_run_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The fitted calibration with maps, before/after ECE and Brier, threshold curve and recommended threshold"
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCalibration",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Delete a calibration (?id=cal_...)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/shadow": {
+      "post": {
+        "operationId": "runShadow",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Shadow your current LLM: answer the same questions and log agreement",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "state",
+                  "questions"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "default": "system-one"
+                  },
+                  "state": {},
+                  "questions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/Question"
+                    }
+                  },
+                  "calibration_id": {
+                    "type": "string"
+                  },
+                  "incumbent": {
+                    "type": "object",
+                    "description": "Your production LLM's answers. Omit `answers` to have this server ask its configured LLM chain instead.",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "answers": {
+                        "type": "object"
+                      },
+                      "latency_ms": {
+                        "type": "integer"
+                      },
+                      "usage": {
+                        "type": "object",
+                        "properties": {
+                          "input_tokens": {
+                            "type": "integer"
+                          },
+                          "output_tokens": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Our answers, the incumbent's, and per-question agreement"
+          },
+          "400": {
+            "description": "Invalid input or no incumbent available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "shadowSummary",
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Shadow dashboard: agreement overall, per question, per confidence band, and projected savings",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 30
+            }
+          },
+          {
+            "name": "threshold",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 0.8
+            }
+          },
+          {
+            "name": "incumbent",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shadow summary"
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{calibrationId}": {
+      "get": {
+        "operationId": "getAuditReport",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Signed calibration audit report (HTML or JSON)",
+        "description": "Bundles the per-question calibration map, raw vs calibrated accuracy / ECE / Brier, the recommended threshold, drift monitor and check history, 30-day shadow agreement and the report's limitations, signed with HMAC-SHA256. Team plan on the hosted service; included when self-hosted. Requires OPENJEV_REPORT_SIGNING_SECRET or BETTER_AUTH_SECRET on the server.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "calibrationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^cal_[a-z0-9]{4,64}$"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "html"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "Send Content-Disposition: attachment."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The signed report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditReport"
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Plan does not include audit reports (plan_required)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Calibration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Report signing is not configured on this server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/verify": {
+      "post": {
+        "operationId": "verifyAuditReport",
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Verify a signed audit report",
+        "description": "Send the report JSON exactly as downloaded. Returns whether this server issued it and it is unmodified. No authentication required.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditReport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "valid": {
+                              "const": true
+                            },
+                            "report_id": {
+                              "type": "string"
+                            },
+                            "calibration_id": {
+                              "type": "string"
+                            },
+                            "issued_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "valid": {
+                              "const": false
+                            },
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "malformed",
+                                "unknown_key",
+                                "bad_signature"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body is not JSON or too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Report signing is not configured on this server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

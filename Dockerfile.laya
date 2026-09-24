@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1
+
+###############################################################################
+# openjev — laya-onnx sidecar (Linux / CPU typed-decision runtime)
+#
+# Runs real onnxruntime inference behind the tiny JSON API in
+# scripts/laya_sidecar.py. The Node service (LAYA_ENGINE_URL) forwards the
+# SystemOne wire contract here for neural inference. On Apple Silicon hosts you
+# would instead run the `laya-mlx` backend natively — this image is the Linux
+# CPU path used by docker-compose.
+###############################################################################
+
+FROM python:3.12-slim
+WORKDIR /app
+
+# Model runtime + Hugging Face downloader used by laya_sidecar.py / laya-download.sh.
+#   onnxruntime      : the CPU inference engine laya_sidecar.py runs directly
+#   tokenizers       : the checkpoint's HF Rust tokenizer (no torch/transformers)
+#   numpy            : prompt collation + calibration math
+#   huggingface_hub  : weight download (`hf` CLI + snapshot_download fallback)
+RUN pip install --no-cache-dir \
+    "huggingface_hub[cli]" \
+    onnxruntime \
+    tokenizers \
+    numpy
+
+# Sidecar + downloader + entrypoint.
+COPY scripts/laya_sidecar.py ./scripts/laya_sidecar.py
+COPY scripts/laya-download.sh ./scripts/laya-download.sh
+COPY scripts/laya-entrypoint.sh ./scripts/laya-entrypoint.sh
+RUN chmod +x ./scripts/laya-entrypoint.sh ./scripts/laya-download.sh
+
+ENV LAYA_BACKEND=onnx \
+    LAYA_HOST=0.0.0.0 \
+    LAYA_PORT=8092 \
+    LAYA_DEST=/models
+
+VOLUME ["/models"]
+EXPOSE 8092
+ENTRYPOINT ["bash", "/app/scripts/laya-entrypoint.sh"]

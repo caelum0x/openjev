@@ -1,0 +1,16 @@
+openjev JavaScript SDK
+Copyright (c) 2026 caelum0x
+
+This product is based on @typesafe-ai/sdk (the official TypeSafe JavaScript SDK),
+which is licensed under the MIT License.
+
+  Original work: @typesafe-ai/sdk (https://github.com/typesafe-ai/typesafe-sdk-js)
+  Original copyright: Copyright (c) 2026 TypeSafe
+  Original license: MIT
+
+This fork ("@openjev/sdk") rebrands the package for the openjev ecosystem
+while remaining wire-compatible with both the hosted TypeSafe API
+(https://api.typesafe.ai/v1) and self-hosted openjev deployments, which share
+the /v1/systemone contract. The request and response shapes are unchanged.
+
+The original MIT License is retained in the LICENSE file, as required by its terms.

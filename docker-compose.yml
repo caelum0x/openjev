@@ -1,0 +1,87 @@
+# openjev — one-command self-host
+#
+#   cp .env.example .env      # then fill in what you need (nothing required to boot)
+#   docker compose up --build
+#
+# Brings up:
+#   openjev   the Node typed-decision API + playground/docs UI  (http://localhost:3000)
+#   laya-onnx      the CPU neural backend sidecar                     (internal :8092)
+#
+# The Node service auto-detects the laya sidecar via LAYA_ENGINE_URL. Without a
+# DATABASE_URL it uses an in-memory PGLite database (data resets on restart);
+# uncomment the `db` service below for durable Postgres.
+
+services:
+  openjev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Baked into the console bundle; keep in sync with the runtime value.
+        VITE_AUTH_ENABLED: "${VITE_AUTH_ENABLED:-false}"
+    image: openjev:latest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      # Reach the neural sidecar over the compose network.
+      LAYA_ENGINE_URL: "http://laya-onnx:8092"
+      LAYA_BACKEND: "onnx"
+      # Everything below is optional — pulled from your .env when present.
+      DATABASE_URL: "${DATABASE_URL:-}"
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:-}"
+      BETTER_AUTH_URL: "${BETTER_AUTH_URL:-}"
+      VITE_AUTH_ENABLED: "${VITE_AUTH_ENABLED:-false}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-}"
+      XAI_API_KEY: "${XAI_API_KEY:-}"
+      XAI_MODEL: "${XAI_MODEL:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      ANTHROPIC_MODEL: "${ANTHROPIC_MODEL:-}"
+      OPENJEV_API_KEY: "${OPENJEV_API_KEY:-}"
+      # OPENJEV_ENGINE_URL only needed if you also run the native C++/Rust engine.
+      OPENJEV_ENGINE_URL: "${OPENJEV_ENGINE_URL:-}"
+    depends_on:
+      - laya-onnx
+    # depends_on: [db]   # uncomment when using the Postgres service below
+
+  laya-onnx:
+    build:
+      context: .
+      dockerfile: Dockerfile.laya
+    image: openjev-laya-onnx:latest
+    restart: unless-stopped
+    environment:
+      LAYA_BACKEND: "onnx"
+      LAYA_HOST: "0.0.0.0"
+      LAYA_PORT: "8092"
+      LAYA_MODEL: "${LAYA_MODEL:-base}"
+      # Set LAYA_SKIP_DOWNLOAD=1 to reuse an already-populated models volume.
+      LAYA_SKIP_DOWNLOAD: "${LAYA_SKIP_DOWNLOAD:-0}"
+    volumes:
+      # Persist downloaded weights so restarts don't re-fetch.
+      - laya-models:/models
+    expose:
+      - "8092"
+
+  # --- Optional durable Postgres -------------------------------------------
+  # Uncomment this block AND set DATABASE_URL in .env to:
+  #   postgresql://openjev:openjev@db:5432/openjev
+  # db:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: openjev
+  #     POSTGRES_PASSWORD: openjev
+  #     POSTGRES_DB: openjev
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+volumes:
+  laya-models:
+  # pgdata:

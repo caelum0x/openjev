@@ -1,0 +1,29 @@
+openjev-adapters
+====================
+
+This project is part of the openjev ecosystem.
+
+It is based on @typesafe-ai/system-one-adapter-python (MIT), the upstream
+"System One Adapter" — a drop-in TypeSafeClient replacement that runs typed
+System One decisions through LLM APIs. The original work is Copyright (c) 2026
+TypeSafe AI and is distributed under the MIT License; that license text is
+retained verbatim in the LICENSE file, as the MIT License requires.
+
+Changes in this fork
+--------------------
+- Renamed the distribution and import package from `system-one-adapter` /
+  `system_one_adapter` to `openjev-adapters` / `openjev_adapters`,
+  and rebranded documentation to the openjev ecosystem.
+- Added environment-configurable endpoint resolution
+  (`openjev_adapters._config`): the base URL and credential default to the
+  hosted TypeSafe API (`https://api.typesafe.ai/v1`) and are overridable via
+  `OPENJEV_BASE_URL` / `TYPESAFE_BASE_URL` and `OPENJEV_API_KEY` /
+  `TYPESAFE_API_KEY`, keeping the client wire-compatible with both the hosted
+  TypeSafe API and a self-hosted openjev deployment (shared
+  `/v1/systemone` contract).
+
+The request/response shapes (model + state + questions-as-dict producing
+Choice / Score / Noul answers) are unchanged and remain a drop-in for
+`typesafe_sdk`.
+
+Upstream: https://github.com/typesafe-ai/system-one-adapter-python

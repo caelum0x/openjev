@@ -1,0 +1,18 @@
+# Publish only the built output (see the "files" whitelist in package.json).
+# This file is a belt-and-suspenders backstop in case "files" is ever removed.
+
+# Sources & tests (consumers get compiled dist/ + .d.ts instead)
+src/
+modules/
+test/
+tsconfig.json
+tsconfig.build.json
+
+# Tooling / local
+.env
+.env.*
+.env.example
+*.log
+node_modules/
+package-lock.json
+.gitignore

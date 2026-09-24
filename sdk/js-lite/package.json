@@ -1,0 +1,86 @@
+{
+  "name": "@openjev/lite",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Zero-dependency OpenJev (System One / otsone) client SDK: typed judgments as programming primitives (Choice / Score / Noul) plus the decide doctrine, over POST /v1/systemone. Points at any self-hosted OpenJev instance (default: http://localhost:8080).",
+  "keywords": [
+    "openjev",
+    "otsone",
+    "system-one",
+    "llm",
+    "typed-decisions",
+    "ai",
+    "classification"
+  ],
+  "license": "Apache-2.0",
+  "author": "caelum0x",
+  "homepage": "https://github.com/caelum0x/openjev/tree/main/sdk/js-lite#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caelum0x/openjev.git",
+    "directory": "sdk/js-lite"
+  },
+  "bugs": {
+    "url": "https://github.com/caelum0x/openjev/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/src/index.js",
+  "module": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./flowblast": {
+      "types": "./dist/modules/flowblast-anticheat.d.ts",
+      "default": "./dist/modules/flowblast-anticheat.js"
+    },
+    "./aegis": {
+      "types": "./dist/modules/aegis-policy-risk.d.ts",
+      "default": "./dist/modules/aegis-policy-risk.js"
+    },
+    "./meta-ads": {
+      "types": "./dist/modules/meta-ads.d.ts",
+      "default": "./dist/modules/meta-ads.js"
+    },
+    "./ads": {
+      "types": "./dist/modules/meta-ads.d.ts",
+      "default": "./dist/modules/meta-ads.js"
+    },
+    "./support-triage": {
+      "types": "./dist/modules/support-triage.d.ts",
+      "default": "./dist/modules/support-triage.js"
+    },
+    "./content-moderation": {
+      "types": "./dist/modules/content-moderation.d.ts",
+      "default": "./dist/modules/content-moderation.js"
+    },
+    "./rag-answer-grader": {
+      "types": "./dist/modules/rag-answer-grader.d.ts",
+      "default": "./dist/modules/rag-answer-grader.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,11 @@
+[project]
+name = "openjev-engine"
+version = "0.1.0"
+description = "Open-source System One engine: Choice, Score, Noul."
+requires-python = ">=3.10"
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["openjev_engine*"]
