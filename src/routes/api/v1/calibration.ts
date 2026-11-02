@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { evalGold } from "@/lib/jev/gold";
-import type { CalibrationReport, CoverageReport } from "@/lib/jev/calibration";
+import { buildReliability, type CalibrationReport, type CoverageReport } from "@/lib/jev/calibration";
 
 type PerQtype = {
   qtype: string;
   n: number;
   accuracy: number;
   avgConfidence: number;
-  /** Mean absolute calibration error for this question type. */
+  /** Binned Expected Calibration Error for this question type (15 equal-width bins). */
   ece: number;
 };
 
@@ -54,27 +54,26 @@ type CalibrationRouteResponse = {
 function buildCalibrationResponse(): CalibrationRouteResponse {
   const report = evalGold("system-one");
 
-  // Per-qtype stats from the raw prediction records.
-  const qtypeMap = new Map<string, { n: number; correct: number; confSum: number }>();
+  // Per-qtype prediction groups, binned the same way as the top-level report —
+  // `ece` below is the real binned Expected Calibration Error for that question
+  // type (not a single-bucket |accuracy - avgConfidence| scalar).
+  const byQtype = new Map<string, (typeof report.predictions)[number][]>();
   for (const p of report.predictions) {
-    const b = qtypeMap.get(p.qtype) ?? { n: 0, correct: 0, confSum: 0 };
-    b.n += 1;
-    if (p.correct) b.correct += 1;
-    b.confSum += p.confidence;
-    qtypeMap.set(p.qtype, b);
+    const group = byQtype.get(p.qtype) ?? [];
+    group.push(p);
+    byQtype.set(p.qtype, group);
   }
 
   const round4 = (x: number) => Math.round(x * 1e4) / 1e4;
 
-  const perQtype: PerQtype[] = [...qtypeMap.entries()].map(([qtype, b]) => {
-    const accuracy = b.n ? b.correct / b.n : 0;
-    const avgConfidence = b.n ? b.confSum / b.n : 0;
+  const perQtype: PerQtype[] = [...byQtype.entries()].map(([qtype, preds]) => {
+    const qReport = buildReliability(preds);
     return {
       qtype,
-      n: b.n,
-      accuracy: round4(accuracy),
-      avgConfidence: round4(avgConfidence),
-      ece: round4(Math.abs(accuracy - avgConfidence)),
+      n: qReport.totalPredictions,
+      accuracy: round4(qReport.overallAccuracy),
+      avgConfidence: round4(qReport.avgConfidence),
+      ece: round4(qReport.ece),
     };
   });
 

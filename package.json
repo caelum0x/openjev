@@ -23,7 +23,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/jev/engine.test.ts src/lib/jev/cookbooks/smarthome.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/api-alias.test.ts src/lib/jev/scope.test.ts src/lib/jev/calibration-fit.test.ts src/lib/jev/cascade.test.ts src/lib/jev/plans.test.ts src/lib/jev/label-import.test.ts src/lib/jev/drift.test.ts src/lib/jev/eval-import.test.ts src/lib/jev/creem.test.ts src/lib/jev/audit-report.test.ts src/lib/jev/public-datasets.test.ts src/lib/jev/embed/wordpiece.test.ts src/lib/jev/embed/engine.test.ts src/lib/jev/public-limit.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/jev/engine.test.ts src/lib/jev/cookbooks/smarthome.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/api-alias.test.ts src/lib/jev/scope.test.ts src/lib/jev/calibration.test.ts src/lib/jev/calibration-fit.test.ts src/lib/jev/cascade.test.ts src/lib/jev/plans.test.ts src/lib/jev/label-import.test.ts src/lib/jev/drift.test.ts src/lib/jev/eval-import.test.ts src/lib/jev/creem.test.ts src/lib/jev/audit-report.test.ts src/lib/jev/public-datasets.test.ts src/lib/jev/embed/wordpiece.test.ts src/lib/jev/embed/engine.test.ts src/lib/jev/public-limit.test.ts",
     "gold": "node --experimental-strip-types -e \"import('./src/lib/jev/gold.ts').then(m=>{const r=m.evalGold('system-one');console.log('gold: '+r.passed+' passed, '+r.failed+' failed');process.exit(r.failed?1:0)})\"",
     "lint": "eslint .",
     "format": "prettier --write .",
