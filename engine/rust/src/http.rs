@@ -29,6 +29,8 @@ pub fn serve(addr: &str) -> std::io::Result<()> {
     Ok(())
 }
 
+const MAX_BODY_BYTES: usize = 1_000_000;
+
 fn handle(mut stream: TcpStream) -> std::io::Result<()> {
     stream.set_read_timeout(Some(std::time::Duration::from_secs(15)))?;
     let mut buf = Vec::with_capacity(8192);
@@ -44,6 +46,9 @@ fn handle(mut stream: TcpStream) -> std::io::Result<()> {
                 .unwrap_or("")
                 .to_string();
             let content_len = content_length(&headers);
+            if content_len > MAX_BODY_BYTES {
+                return write_res(&mut stream, 413, "text/plain", b"too large");
+            }
             let body_start = header_end + 4;
             while buf.len() < body_start + content_len {
                 let n = stream.read(&mut tmp)?;
@@ -58,7 +63,7 @@ fn handle(mut stream: TcpStream) -> std::io::Result<()> {
             dispatch(&mut stream, &method_path, &body)?;
             return Ok(());
         }
-        if buf.len() > 1_000_000 {
+        if buf.len() > MAX_BODY_BYTES {
             return write_res(&mut stream, 413, "text/plain", b"too large");
         }
     }
