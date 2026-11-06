@@ -57,6 +57,13 @@ option `[MASK]` marker — so `otsone-1` drops straight into
 The graph outputs `logits` **and** `corn_logits`; pre-v2 (Laya) checkpoints that
 lack `corn_logits` fall back to the marker-softmax score path unchanged.
 
+See [ALTERNATIVE-TRAINING-RECIPES.md](./ALTERNATIVE-TRAINING-RECIPES.md) for two
+external, independently-published recipes (Together AI's hosted fine-tune,
+Unsloth's local/Colab LoRA `FastDecisionModel`) that target the same choice /
+score / noul problem shape from a larger generative base model — useful
+reference if otsone's own training corpus or eval suite ever needs a
+broader-base-model comparison point.
+
 ## Training corpus + teacher distillation
 
 `build_corpus()` in `laya_mlx/distill.py` synthesises the base labelled set
