@@ -30,13 +30,18 @@ downloaded model weights).
 
 By default the Node service uses an in-memory PGLite database — data resets on restart.
 For persistence, uncomment the `db` (Postgres) service and the `pgdata` volume in
-`docker-compose.yml`, then set in `.env`:
+`docker-compose.yml`, pick your own strong password, and set both in `.env`
+(the compose file does not publish Postgres's port to the host — `db` is only
+reachable from the other containers on the internal compose network):
 
 ```bash
-DATABASE_URL=postgresql://openjev:openjev@db:5432/openjev
+POSTGRES_PASSWORD=<a real secret, e.g. `openssl rand -hex 24`>
+DATABASE_URL=postgresql://openjev:<same POSTGRES_PASSWORD>@db:5432/openjev
 ```
 
-Migrations run automatically at container start.
+Never leave `POSTGRES_PASSWORD`/`DATABASE_URL` at the old `openjev`/`openjev` default —
+that credential pair is public (it was this project's placeholder) and must not be used
+on any host reachable by anyone else. Migrations run automatically at container start.
 
 ### LLM escalation (optional)
 

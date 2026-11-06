@@ -68,19 +68,21 @@ services:
       - "8092"
 
   # --- Optional durable Postgres -------------------------------------------
-  # Uncomment this block AND set DATABASE_URL in .env to:
-  #   postgresql://openjev:openjev@db:5432/openjev
+  # Uncomment this block, set POSTGRES_PASSWORD in .env to a real secret, and
+  # set DATABASE_URL in .env to:
+  #   postgresql://openjev:<same POSTGRES_PASSWORD>@db:5432/openjev
+  # No host port is published — the Node service reaches `db` over the
+  # internal compose network only. Do NOT add a `ports: ["5432:5432"]`
+  # mapping here; that would expose Postgres on the host's network interface.
   # db:
   #   image: postgres:16-alpine
   #   restart: unless-stopped
   #   environment:
   #     POSTGRES_USER: openjev
-  #     POSTGRES_PASSWORD: openjev
+  #     POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
   #     POSTGRES_DB: openjev
   #   volumes:
   #     - pgdata:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
 
 volumes:
   laya-models:
