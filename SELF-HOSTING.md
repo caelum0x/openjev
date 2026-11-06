@@ -134,6 +134,7 @@ required to boot. The most relevant knobs:
 | `OPENJEV_PUBLIC_RPM_GLOBAL` | Keyless requests per minute across all IPs on those routes; `0` disables | `600` |
 | `OPENJEV_PUBLIC_MAX_BODY_BYTES` | Overrides the per-route JSON body cap on those routes (defaults: 64 KiB cookbooks, 32 KiB loop, 512 KiB compact); over it answers 413 | _(per route)_ |
 | `OPENJEV_HOSTED` | Hosted-service mode: enables plan gating **and** applies the public demo limits above to anonymous `POST /api/v1/systemone` and `POST /api/v1/batch` (a batch costs one unit per item; body caps 64 KiB / 256 KiB). Leave unset when self-hosting: those two endpoints stay unlimited | _(unset)_ |
+| `OPENJEV_TRUST_PROXY_HEADERS` | Trust `CF-Connecting-IP` / `X-Real-IP` / `X-Forwarded-For` for per-IP bucketing (see below). Set only if a reverse proxy *you* control overwrites these headers before the request reaches this process | _(unset: ignored)_ |
 
 Over a public limit the API answers `429` with `Retry-After`, `RateLimit-*` headers and
 `{"error":{"type":"rate_limit","reason":"ip_rate_limit"|"global_rate_limit",...}}`. A
@@ -141,9 +142,21 @@ live `ots_live_` API key skips the demo limits and is held to its plan quota ins
 On a self-hosted install anonymous `/api/v1/systemone` and `/api/v1/batch` calls are not
 rate limited (the engine is yours); set `OPENJEV_HOSTED=1` if you expose them publicly
 and want the same demo windows, or put a proxy limiter in front.
-Windows are in-process (per server instance). The client IP comes from
-`CF-Connecting-IP`, then `X-Real-IP`, then the last `X-Forwarded-For` hop, so run behind
-a proxy that sets one of those.
+
+**Per-IP bucketing is untrusted by default.** `CF-Connecting-IP`, `X-Real-IP` and
+`X-Forwarded-For` are ordinary, attacker-controlled request headers unless something in
+front of this process overwrites them with the real client address first. The stock
+`docker compose up --build` path in this repo does **not** put such a proxy in front —
+it publishes this process' port directly — so without an explicit opt-in, a caller could
+send a fresh `X-Forwarded-For` on every request and mint a brand-new per-IP bucket each
+time, defeating the limiter. By default this service therefore ignores those headers and
+buckets every caller under a single `"unknown"` key, so only the **global** window
+(`OPENJEV_PUBLIC_RPM_GLOBAL`) actually constrains traffic. Only set
+`OPENJEV_TRUST_PROXY_HEADERS=1` if you put a real reverse proxy (nginx, Caddy, etc.) in
+front that strips any client-supplied value and sets its own `X-Real-IP` /
+`X-Forwarded-For` from the TCP connection. The hosted deployment sets `OPENJEV_HOSTED=1`,
+which trusts these headers implicitly because it always sits behind Cloudflare.
+Windows are in-process (per server instance).
 
 ---
 

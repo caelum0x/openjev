@@ -12,6 +12,7 @@ import {
   publicRateLimitResponse,
   PublicRateLimiter,
   readJsonLimited,
+  trustProxyHeaders,
 } from "./public-limit.ts";
 
 const cfg = (perIp: number, global: number) => ({
@@ -73,18 +74,47 @@ describe("PublicRateLimiter", () => {
   });
 });
 
-describe("clientIp", () => {
-  it("prefers cf-connecting-ip, then x-real-ip", () => {
-    assert.equal(clientIp(new Headers({ "cf-connecting-ip": "9.9.9.9", "x-real-ip": "8.8.8.8" })), "9.9.9.9");
-    assert.equal(clientIp(new Headers({ "x-real-ip": "8.8.8.8", "x-forwarded-for": "1.1.1.1" })), "8.8.8.8");
+describe("trustProxyHeaders", () => {
+  it("is untrusted by default (no OPENJEV_HOSTED / OPENJEV_TRUST_PROXY_HEADERS)", () => {
+    assert.equal(trustProxyHeaders({}), false);
   });
 
-  it("takes the rightmost X-Forwarded-For hop (client can't spoof it)", () => {
-    assert.equal(clientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 7.7.7.7" })), "7.7.7.7");
+  it("is trusted when hosted", () => {
+    assert.equal(trustProxyHeaders({ OPENJEV_HOSTED: "1" }), true);
+  });
+
+  it("is trusted when a self-hoster opts in explicitly", () => {
+    assert.equal(trustProxyHeaders({ OPENJEV_TRUST_PROXY_HEADERS: "1" }), true);
+    assert.equal(trustProxyHeaders({ OPENJEV_TRUST_PROXY_HEADERS: "true" }), true);
+    assert.equal(trustProxyHeaders({ OPENJEV_TRUST_PROXY_HEADERS: "0" }), false);
+  });
+});
+
+describe("clientIp", () => {
+  const trusted = { OPENJEV_TRUST_PROXY_HEADERS: "1" };
+
+  it("ignores forwarded-IP headers by default, even when present (spoofable without a trusted proxy)", () => {
+    assert.equal(clientIp(new Headers({ "cf-connecting-ip": "9.9.9.9" }), {}), "unknown");
+    assert.equal(clientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 7.7.7.7" }), {}), "unknown");
+  });
+
+  it("prefers cf-connecting-ip, then x-real-ip, once trusted", () => {
+    assert.equal(
+      clientIp(new Headers({ "cf-connecting-ip": "9.9.9.9", "x-real-ip": "8.8.8.8" }), trusted),
+      "9.9.9.9",
+    );
+    assert.equal(
+      clientIp(new Headers({ "x-real-ip": "8.8.8.8", "x-forwarded-for": "1.1.1.1" }), trusted),
+      "8.8.8.8",
+    );
+  });
+
+  it("takes the rightmost X-Forwarded-For hop (client can't spoof it), once trusted", () => {
+    assert.equal(clientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 7.7.7.7" }), trusted), "7.7.7.7");
   });
 
   it("falls back to unknown", () => {
-    assert.equal(clientIp(new Headers()), "unknown");
+    assert.equal(clientIp(new Headers(), trusted), "unknown");
   });
 });
 
