@@ -15,6 +15,10 @@
  * windows admit it, so a denied IP never burns the global allowance.
  *
  * State is in-process: each server instance enforces its own windows.
+ *
+ * Per-IP bucketing requires a trustworthy client IP (see `trustProxyHeaders` /
+ * `clientIp` below) — untrusted deployments collapse every caller onto one
+ * "unknown" bucket, so the global window is still the real backstop.
  */
 
 export const PUBLIC_WINDOW_MS = 60_000;
@@ -183,13 +187,40 @@ export class PublicRateLimiter {
 }
 
 /**
+ * Whether CF-Connecting-IP / X-Real-IP / X-Forwarded-For are safe to read for
+ * rate-limit bucketing. Those headers are fully attacker-controlled unless a
+ * reverse proxy in front of this process overwrites them with the real client
+ * address before the request arrives here — the stock `docker compose up`
+ * self-host path does NOT put such a proxy in front (it exposes this process'
+ * port directly), so trusting them there would let a caller mint a fresh
+ * per-IP bucket on every request by sending a new X-Forwarded-For each time.
+ *
+ * Trusted when OPENJEV_HOSTED=1 (the hosted deployment always sits behind
+ * Cloudflare, which overwrites CF-Connecting-IP at its edge) or when a
+ * self-hoster opts in explicitly via OPENJEV_TRUST_PROXY_HEADERS=1 after
+ * confirming their own reverse proxy strips/overwrites these headers.
+ */
+export function trustProxyHeaders(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  if (hostedAnonymousLimitsEnabled(env)) return true;
+  const raw = env.OPENJEV_TRUST_PROXY_HEADERS?.trim().toLowerCase();
+  return raw === "1" || raw === "true";
+}
+
+/**
  * Best-effort client IP. Prefers headers set by the edge (Cloudflare, then a
  * reverse proxy's X-Real-IP); for X-Forwarded-For it takes the RIGHTMOST hop —
  * the one our own proxy appended — because the leftmost entries are
  * client-controlled and would let a caller rotate identities per request.
- * Falls back to "unknown" (all such callers share one bucket).
+ * Falls back to "unknown" (all such callers share one bucket) when those
+ * headers aren't trusted (see `trustProxyHeaders`) or aren't present.
  */
-export function clientIp(headers: Headers): string {
+export function clientIp(
+  headers: Headers,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  if (!trustProxyHeaders(env)) return "unknown";
   const cf = headers.get("cf-connecting-ip")?.trim();
   if (cf) return cf;
   const real = headers.get("x-real-ip")?.trim();
