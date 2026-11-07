@@ -1,9 +1,65 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
+import { buttonVariants } from "@/components/ui/button";
 import LEADERBOARD from "@/lib/content/leaderboard.json";
 import type { LeaderboardFile, LeaderboardRow, PublicTrack } from "@/lib/jev/leaderboard";
+import { api } from "@/lib/jev/browser";
+import { cn } from "@/lib/utils";
 import { absUrl, articleLd, OG_IMAGE, SITE_NAME } from "@/lib/seo/site";
+
+/** The shape `/api/v1/benchmark-submissions/leaderboard` returns per row. */
+type ExternalSubmission = {
+  id: string;
+  model_label: string;
+  submitted_at: number;
+  result: {
+    case_count: number;
+    accuracy: number;
+    strict_pass_rate: number;
+    avg_confidence: number;
+    ece: number;
+    brier: number;
+  };
+};
+
+/** A completed community submission, reshaped into a real `LeaderboardRow` —
+ * same columns, same table, scored by the same engine (see
+ * benchmark-submissions.server.ts) as every other gold-suite row. */
+function toLeaderboardRow(s: ExternalSubmission): LeaderboardRow {
+  return {
+    id: s.id,
+    label: s.model_label,
+    kind: "external",
+    status: "ok",
+    gold: {
+      cases: s.result.case_count,
+      strict_pass_rate: s.result.strict_pass_rate,
+      accuracy: s.result.accuracy,
+      avg_confidence: s.result.avg_confidence,
+      ece: s.result.ece,
+      brier: s.result.brier,
+    },
+  };
+}
+
+/** Fetch completed community submissions for the gold-suite tab. Best-effort:
+ * a failed fetch just means the table shows the committed rows only. */
+function useExternalSubmissions(): LeaderboardRow[] {
+  const [rows, setRows] = useState<LeaderboardRow[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    api<{ data: ExternalSubmission[] }>("/api/v1/benchmark-submissions/leaderboard")
+      .then((res) => {
+        if (!cancelled) setRows(res.data.map(toLeaderboardRow));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return rows;
+}
 
 const DATA = LEADERBOARD as LeaderboardFile;
 
@@ -50,6 +106,7 @@ const KIND_LABEL: Record<LeaderboardRow["kind"], string> = {
   cascade: "Cascade",
   cloud: "Hosted",
   ablation: "Ablation",
+  external: "Community submitted",
 };
 
 const GOLD_TAB = "gold";
@@ -92,6 +149,14 @@ function LeaderboardPage() {
               )}
             </p>
           ) : null}
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Link
+              to="/submit-model"
+              className={cn(buttonVariants({ variant: "secondary" }))}
+            >
+              Submit your model
+            </Link>
+          </div>
         </header>
 
         {tabs.length > 1 ? (
@@ -175,6 +240,17 @@ function LeaderboardPage() {
             </li>
             <li>
               Harness: <code className="font-mono">{DATA.harness}</code>.
+            </li>
+            <li>
+              "Community submitted" rows on the gold suite tab are run live, on
+              demand, by{" "}
+              <Link to="/submit-model" className="underline decoration-border underline-offset-2">
+                Submit your model
+              </Link>
+              : the same 93-case gold suite, scored by the same calibration engine
+              (<code className="font-mono">src/lib/jev/calibration.ts</code>), not a
+              self-reported number. They are not run against the out-of-scope probe
+              set, so their OOD columns are blank.
             </li>
           </ul>
           <p className="text-sm">
@@ -335,8 +411,12 @@ function PublicTrackView({ track }: { track: PublicTrack }) {
 }
 
 function GoldView() {
-  const ran = DATA.rows.filter((r) => r.status === "ok");
-  const pending = DATA.rows.filter((r) => r.status !== "ok");
+  const external = useExternalSubmissions();
+  // Community submissions sort newest-first and sit below the committed rows
+  // — same table, same columns, ranked by the same numbers, just appended.
+  const allRows = [...DATA.rows, ...external];
+  const ran = allRows.filter((r) => r.status === "ok");
+  const pending = allRows.filter((r) => r.status !== "ok");
   return (
     <>
       <section className="space-y-3">

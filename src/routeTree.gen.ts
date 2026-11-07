@@ -34,6 +34,7 @@ import { Route as ShadowRouteImport } from './routes/shadow'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SkillRouteImport } from './routes/skill'
 import { Route as StatusRouteImport } from './routes/status'
+import { Route as SubmitModelRouteImport } from './routes/submit-model'
 import { Route as SystemOneRouteImport } from './routes/system-one'
 import { Route as UsageRouteImport } from './routes/usage'
 import { Route as BackendsIndexRouteImport } from './routes/backends/index'
@@ -74,6 +75,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiV1IndexRouteImport } from './routes/api/v1/index'
 import { Route as ApiV1AccountRouteImport } from './routes/api/v1/account'
 import { Route as ApiV1BatchRouteImport } from './routes/api/v1/batch'
+import { Route as ApiV1BenchmarkSubmissionsRouteImport } from './routes/api/v1/benchmark-submissions'
 import { Route as ApiV1BillingRouteImport } from './routes/api/v1/billing'
 import { Route as ApiV1CalibrationRouteImport } from './routes/api/v1/calibration'
 import { Route as ApiV1CalibrationsRouteImport } from './routes/api/v1/calibrations'
@@ -97,6 +99,7 @@ import { Route as ApiV1SystemoneRouteImport } from './routes/api/v1/systemone'
 import { Route as ApiV1UsageRouteImport } from './routes/api/v1/usage'
 import { Route as ApiV1ValidateRouteImport } from './routes/api/v1/validate'
 import { Route as ApiV1WebhooksRouteImport } from './routes/api/v1/webhooks'
+import { Route as ApiV1BenchmarkSubmissionsLeaderboardRouteImport } from './routes/api/v1/benchmark-submissions.leaderboard'
 import { Route as ApiV1CookbooksCascadeRouteImport } from './routes/api/v1/cookbooks/cascade'
 import { Route as ApiV1CookbooksConsistencyRouteImport } from './routes/api/v1/cookbooks/consistency'
 import { Route as ApiV1CookbooksFunctionCallingRouteImport } from './routes/api/v1/cookbooks/function-calling'
@@ -228,6 +231,11 @@ const SkillRoute = SkillRouteImport.update({
 const StatusRoute = StatusRouteImport.update({
   id: '/status',
   path: '/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubmitModelRoute = SubmitModelRouteImport.update({
+  id: '/submit-model',
+  path: '/submit-model',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SystemOneRoute = SystemOneRouteImport.update({
@@ -430,6 +438,12 @@ const ApiV1BatchRoute = ApiV1BatchRouteImport.update({
   path: '/api/v1/batch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BenchmarkSubmissionsRoute =
+  ApiV1BenchmarkSubmissionsRouteImport.update({
+    id: '/api/v1/benchmark-submissions',
+    path: '/api/v1/benchmark-submissions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiV1BillingRoute = ApiV1BillingRouteImport.update({
   id: '/api/v1/billing',
   path: '/api/v1/billing',
@@ -545,6 +559,12 @@ const ApiV1WebhooksRoute = ApiV1WebhooksRouteImport.update({
   path: '/api/v1/webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BenchmarkSubmissionsLeaderboardRoute =
+  ApiV1BenchmarkSubmissionsLeaderboardRouteImport.update({
+    id: '/leaderboard',
+    path: '/leaderboard',
+    getParentRoute: () => ApiV1BenchmarkSubmissionsRoute,
+  } as any)
 const ApiV1CookbooksCascadeRoute = ApiV1CookbooksCascadeRouteImport.update({
   id: '/api/v1/cookbooks/cascade',
   path: '/api/v1/cookbooks/cascade',
@@ -610,6 +630,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/skill': typeof SkillRoute
   '/status': typeof StatusRoute
+  '/submit-model': typeof SubmitModelRoute
   '/system-one': typeof SystemOneRoute
   '/usage': typeof UsageRoute
   '/backends/$slug': typeof BackendsSlugRoute
@@ -649,6 +670,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/account': typeof ApiV1AccountRoute
   '/api/v1/batch': typeof ApiV1BatchRoute
+  '/api/v1/benchmark-submissions': typeof ApiV1BenchmarkSubmissionsRouteWithChildren
   '/api/v1/billing': typeof ApiV1BillingRoute
   '/api/v1/calibration': typeof ApiV1CalibrationRoute
   '/api/v1/calibrations': typeof ApiV1CalibrationsRoute
@@ -673,6 +695,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/validate': typeof ApiV1ValidateRoute
   '/api/v1/webhooks': typeof ApiV1WebhooksRoute
   '/api/v1/': typeof ApiV1IndexRoute
+  '/api/v1/benchmark-submissions/leaderboard': typeof ApiV1BenchmarkSubmissionsLeaderboardRoute
   '/api/v1/cookbooks/cascade': typeof ApiV1CookbooksCascadeRoute
   '/api/v1/cookbooks/consistency': typeof ApiV1CookbooksConsistencyRoute
   '/api/v1/cookbooks/function-calling': typeof ApiV1CookbooksFunctionCallingRoute
@@ -706,6 +729,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/skill': typeof SkillRoute
   '/status': typeof StatusRoute
+  '/submit-model': typeof SubmitModelRoute
   '/system-one': typeof SystemOneRoute
   '/usage': typeof UsageRoute
   '/backends/$slug': typeof BackendsSlugRoute
@@ -745,6 +769,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/account': typeof ApiV1AccountRoute
   '/api/v1/batch': typeof ApiV1BatchRoute
+  '/api/v1/benchmark-submissions': typeof ApiV1BenchmarkSubmissionsRouteWithChildren
   '/api/v1/billing': typeof ApiV1BillingRoute
   '/api/v1/calibration': typeof ApiV1CalibrationRoute
   '/api/v1/calibrations': typeof ApiV1CalibrationsRoute
@@ -769,6 +794,7 @@ export interface FileRoutesByTo {
   '/api/v1/validate': typeof ApiV1ValidateRoute
   '/api/v1/webhooks': typeof ApiV1WebhooksRoute
   '/api/v1': typeof ApiV1IndexRoute
+  '/api/v1/benchmark-submissions/leaderboard': typeof ApiV1BenchmarkSubmissionsLeaderboardRoute
   '/api/v1/cookbooks/cascade': typeof ApiV1CookbooksCascadeRoute
   '/api/v1/cookbooks/consistency': typeof ApiV1CookbooksConsistencyRoute
   '/api/v1/cookbooks/function-calling': typeof ApiV1CookbooksFunctionCallingRoute
@@ -804,6 +830,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/skill': typeof SkillRoute
   '/status': typeof StatusRoute
+  '/submit-model': typeof SubmitModelRoute
   '/system-one': typeof SystemOneRoute
   '/usage': typeof UsageRoute
   '/backends/$slug': typeof BackendsSlugRoute
@@ -843,6 +870,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/account': typeof ApiV1AccountRoute
   '/api/v1/batch': typeof ApiV1BatchRoute
+  '/api/v1/benchmark-submissions': typeof ApiV1BenchmarkSubmissionsRouteWithChildren
   '/api/v1/billing': typeof ApiV1BillingRoute
   '/api/v1/calibration': typeof ApiV1CalibrationRoute
   '/api/v1/calibrations': typeof ApiV1CalibrationsRoute
@@ -867,6 +895,7 @@ export interface FileRoutesById {
   '/api/v1/validate': typeof ApiV1ValidateRoute
   '/api/v1/webhooks': typeof ApiV1WebhooksRoute
   '/api/v1/': typeof ApiV1IndexRoute
+  '/api/v1/benchmark-submissions/leaderboard': typeof ApiV1BenchmarkSubmissionsLeaderboardRoute
   '/api/v1/cookbooks/cascade': typeof ApiV1CookbooksCascadeRoute
   '/api/v1/cookbooks/consistency': typeof ApiV1CookbooksConsistencyRoute
   '/api/v1/cookbooks/function-calling': typeof ApiV1CookbooksFunctionCallingRoute
@@ -903,6 +932,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/skill'
     | '/status'
+    | '/submit-model'
     | '/system-one'
     | '/usage'
     | '/backends/$slug'
@@ -942,6 +972,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/account'
     | '/api/v1/batch'
+    | '/api/v1/benchmark-submissions'
     | '/api/v1/billing'
     | '/api/v1/calibration'
     | '/api/v1/calibrations'
@@ -966,6 +997,7 @@ export interface FileRouteTypes {
     | '/api/v1/validate'
     | '/api/v1/webhooks'
     | '/api/v1/'
+    | '/api/v1/benchmark-submissions/leaderboard'
     | '/api/v1/cookbooks/cascade'
     | '/api/v1/cookbooks/consistency'
     | '/api/v1/cookbooks/function-calling'
@@ -999,6 +1031,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/skill'
     | '/status'
+    | '/submit-model'
     | '/system-one'
     | '/usage'
     | '/backends/$slug'
@@ -1038,6 +1071,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/account'
     | '/api/v1/batch'
+    | '/api/v1/benchmark-submissions'
     | '/api/v1/billing'
     | '/api/v1/calibration'
     | '/api/v1/calibrations'
@@ -1062,6 +1096,7 @@ export interface FileRouteTypes {
     | '/api/v1/validate'
     | '/api/v1/webhooks'
     | '/api/v1'
+    | '/api/v1/benchmark-submissions/leaderboard'
     | '/api/v1/cookbooks/cascade'
     | '/api/v1/cookbooks/consistency'
     | '/api/v1/cookbooks/function-calling'
@@ -1096,6 +1131,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/skill'
     | '/status'
+    | '/submit-model'
     | '/system-one'
     | '/usage'
     | '/backends/$slug'
@@ -1135,6 +1171,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/v1/account'
     | '/api/v1/batch'
+    | '/api/v1/benchmark-submissions'
     | '/api/v1/billing'
     | '/api/v1/calibration'
     | '/api/v1/calibrations'
@@ -1159,6 +1196,7 @@ export interface FileRouteTypes {
     | '/api/v1/validate'
     | '/api/v1/webhooks'
     | '/api/v1/'
+    | '/api/v1/benchmark-submissions/leaderboard'
     | '/api/v1/cookbooks/cascade'
     | '/api/v1/cookbooks/consistency'
     | '/api/v1/cookbooks/function-calling'
@@ -1194,6 +1232,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SkillRoute: typeof SkillRoute
   StatusRoute: typeof StatusRoute
+  SubmitModelRoute: typeof SubmitModelRoute
   SystemOneRoute: typeof SystemOneRoute
   UsageRoute: typeof UsageRoute
   BackendsSlugRoute: typeof BackendsSlugRoute
@@ -1231,6 +1270,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1AccountRoute: typeof ApiV1AccountRoute
   ApiV1BatchRoute: typeof ApiV1BatchRoute
+  ApiV1BenchmarkSubmissionsRoute: typeof ApiV1BenchmarkSubmissionsRouteWithChildren
   ApiV1BillingRoute: typeof ApiV1BillingRoute
   ApiV1CalibrationRoute: typeof ApiV1CalibrationRoute
   ApiV1CalibrationsRoute: typeof ApiV1CalibrationsRoute
@@ -1439,6 +1479,13 @@ declare module '@tanstack/react-router' {
       path: '/status'
       fullPath: '/status'
       preLoaderRoute: typeof StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/submit-model': {
+      id: '/submit-model'
+      path: '/submit-model'
+      fullPath: '/submit-model'
+      preLoaderRoute: typeof SubmitModelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/system-one': {
@@ -1721,6 +1768,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/benchmark-submissions': {
+      id: '/api/v1/benchmark-submissions'
+      path: '/api/v1/benchmark-submissions'
+      fullPath: '/api/v1/benchmark-submissions'
+      preLoaderRoute: typeof ApiV1BenchmarkSubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/billing': {
       id: '/api/v1/billing'
       path: '/api/v1/billing'
@@ -1882,6 +1936,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1WebhooksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/benchmark-submissions/leaderboard': {
+      id: '/api/v1/benchmark-submissions/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/api/v1/benchmark-submissions/leaderboard'
+      preLoaderRoute: typeof ApiV1BenchmarkSubmissionsLeaderboardRouteImport
+      parentRoute: typeof ApiV1BenchmarkSubmissionsRoute
+    }
     '/api/v1/cookbooks/cascade': {
       id: '/api/v1/cookbooks/cascade'
       path: '/api/v1/cookbooks/cascade'
@@ -1946,6 +2007,21 @@ const DocsRouteChildren: DocsRouteChildren = {
 
 const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
 
+interface ApiV1BenchmarkSubmissionsRouteChildren {
+  ApiV1BenchmarkSubmissionsLeaderboardRoute: typeof ApiV1BenchmarkSubmissionsLeaderboardRoute
+}
+
+const ApiV1BenchmarkSubmissionsRouteChildren: ApiV1BenchmarkSubmissionsRouteChildren =
+  {
+    ApiV1BenchmarkSubmissionsLeaderboardRoute:
+      ApiV1BenchmarkSubmissionsLeaderboardRoute,
+  }
+
+const ApiV1BenchmarkSubmissionsRouteWithChildren =
+  ApiV1BenchmarkSubmissionsRoute._addFileChildren(
+    ApiV1BenchmarkSubmissionsRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -1972,6 +2048,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SkillRoute: SkillRoute,
   StatusRoute: StatusRoute,
+  SubmitModelRoute: SubmitModelRoute,
   SystemOneRoute: SystemOneRoute,
   UsageRoute: UsageRoute,
   BackendsSlugRoute: BackendsSlugRoute,
@@ -2009,6 +2086,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1AccountRoute: ApiV1AccountRoute,
   ApiV1BatchRoute: ApiV1BatchRoute,
+  ApiV1BenchmarkSubmissionsRoute: ApiV1BenchmarkSubmissionsRouteWithChildren,
   ApiV1BillingRoute: ApiV1BillingRoute,
   ApiV1CalibrationRoute: ApiV1CalibrationRoute,
   ApiV1CalibrationsRoute: ApiV1CalibrationsRoute,

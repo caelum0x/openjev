@@ -1,4 +1,4 @@
-# Geek Room Global AI Hackathon submission — OpenJev "eval-external"
+# Geek Room Global AI Hackathon submission — OpenJev "Benchmark Submissions"
 
 Geek Room Global AI Hackathon, $11,500 pool, deadline Nov 15 2026 (registration
 + prototype), judging Nov 29 2026. Targets the published theme **"a
@@ -10,137 +10,191 @@ page requires joining their Discord to see the real rules).
 
 ## What this actually is (read this before the pitch)
 
-OpenJev already ships a real, working calibration/eval harness for its own
-typed-decision models (`otsone eval`, see
-[`otsone/laya_mlx/eval_gold.py`](../../otsone/laya_mlx/eval_gold.py) and
-[`otsone/laya_mlx/calibration.py`](../../otsone/laya_mlx/calibration.py)): it
-runs a gold case set through a served model, checks pass/fail per question,
-and computes real accuracy plus a 15-bin reliability report — ECE
-(equal-width), adaptive ECE (equal-mass), MCE, Brier score, and NLL, broken
-down per question type (choice/score/noul).
+OpenJev is a real, production-grade open-source platform already in daily
+use: a TypeScript web console + API server (TanStack Router/Vite + React,
+Postgres via Neon or embedded PGLite), a native calibration engine
+([`src/lib/jev/calibration.ts`](../../src/lib/jev/calibration.ts)), a public
+[`/leaderboard`](../../src/routes/leaderboard.tsx) that scores every OpenJev
+model on a 93-case in-repo gold suite plus three public datasets (Banking77,
+CLINC150+OOS, AG News), and a real auth/API-key/quota/rate-limit system
+(`src/lib/auth/`, `migrations/0004_quotas.sql`,
+`migrations/0005_llm_rate_limit.sql`). It is not a toy or a side CLI script.
 
-That harness only ever pointed at OpenJev's own ONNX checkpoints
-(`laya_mlx.server.OnnxEngine`). It was an **internal eval script**, not
-something a third party could use. This submission is the one real feature
-that closes that specific gap: **`otsone eval-external`**, a new CLI command
-and module
-([`otsone/laya_mlx/eval_external.py`](../../otsone/laya_mlx/eval_external.py))
-that lets anyone point the exact same scoring code at **their own**
-typed-decision model or agent and get the identical report back — with zero
-changes to the underlying accuracy/ECE/MCE/Brier/NLL math.
+A first pass on this theme shipped `otsone eval-external`, a Python CLI
+addition that let a third party point the existing gold-case harness at their
+own model. The owner's correction: that was too small a surface for "a
+benchmarking platform for AI agents" — the real submission has to be a
+first-class part of the platform itself, not a script judges have to go dig
+for in a subfolder. **This is that submission: "Benchmark Submissions," a
+production-integrated subsystem of the real platform.**
 
-**What's genuinely new in this submission** (not a relabel of existing docs):
+### What was built
 
-- `HttpEngine` — calls a live HTTP endpoint the third party runs
-  (`POST {state, questions}` → `{"answers": {...}}`), using only the standard
-  library (`urllib.request`, no new dependency), with a real safety check that
-  rejects any non-`http(s)` URL scheme.
-- `AnswersFileEngine` / `load_answers_payload` — replays a third party's
-  precomputed predictions from a JSON file (an id→answers map, or a list of
-  `{id, answers}` records) for teams who can't expose a live endpoint, with a
-  loud, explicit error if any gold case id is missing.
-- A new `otsone eval-external` CLI subcommand wired into
-  [`otsone/laya_mlx/cli.py`](../../otsone/laya_mlx/cli.py), with `--api-key-env`
-  / `--header` for auth, `--timeout`, and `--out` to save the full JSON report.
-- 22 new tests in
-  [`otsone/tests/test_eval_external.py`](../../otsone/tests/test_eval_external.py)
-  — including a real local HTTP server (no mocked internals) for the live-URL
-  path, both answers-file shapes, the URL-scheme safety check, and an
-  end-to-end CLI dispatch test.
-
-**What is NOT new:** the scoring math itself (`evaluate()`, `check()`,
-`reliability()`, `per_type_reliability()`) is completely untouched — every
-report number still comes from the same code OpenJev already uses on its own
-models, which is the honest reason the numbers below are trustworthy and not
-invented for this submission.
+1. **A real migration** —
+   [`migrations/0011_external_benchmarks.sql`](../../migrations/0011_external_benchmarks.sql):
+   `benchmark_submissions` (submitter, model label, source — a live HTTP
+   endpoint or a precomputed-answers upload, status, timestamps) and
+   `benchmark_results` (one row for the overall score plus one row per
+   question type — choice/noul/score — each with accuracy, strict pass rate,
+   ECE, adaptive ECE, MCE, Brier, NLL).
+2. **A real, pure scoring module** —
+   [`src/lib/jev/benchmark-scoring.ts`](../../src/lib/jev/benchmark-scoring.ts):
+   builds a `Runner` that either POSTs `{state, questions}` to the
+   submitter's endpoint and reads back `{answers}` (the identical contract
+   `HttpEngine` in `otsone/laya_mlx/eval_external.py` expects), or replays a
+   precomputed answers payload in the gold suite's own order (mirrors
+   `AnswersFileEngine`). The actual scoring is NOT reimplemented — it calls
+   the exact same `evalGoldWith` (`src/lib/jev/gold.ts`) and `buildReliability`
+   (`src/lib/jev/calibration.ts`) engine every OpenJev model, and
+   `scripts/leaderboard.mjs`, already use. One canonical TypeScript scoring
+   engine; the Python harness and this module compute the same metric
+   definitions (ECE/MCE/Brier/NLL per question type), not two divergent ones.
+3. **A real API route** —
+   [`src/routes/api/v1/benchmark-submissions.ts`](../../src/routes/api/v1/benchmark-submissions.ts)
+   (`GET`/`POST`, same auth as every other `/api/v1/*` route —
+   `resolveConsoleUser`, then the real `checkQuota` rate-limit/monthly-quota
+   check — so a submission counts against the submitter's own quota like any
+   other decision volume) plus a public, unauthenticated
+   [`.../leaderboard`](../../src/routes/api/v1/benchmark-submissions.leaderboard.ts)
+   feed for the public page. `POST` runs the full 93-case gold suite
+   synchronously, persists the submission + its overall and per-type results,
+   and returns real computed scores — not a queued job id to poll.
+4. **A new shared SSRF guard** —
+   [`src/lib/jev/outbound-guard.server.ts`](../../src/lib/jev/outbound-guard.server.ts),
+   extracted from the existing outbound-webhooks SSRF protection (one
+   guard, not two implementations that could drift) — rejects
+   localhost/loopback/RFC1918-private/link-local/cloud-metadata/CGNAT targets
+   before any submitted endpoint URL is ever called, both by literal-IP check
+   and a real DNS-resolution check.
+5. **Real UI integration, not a separate page** —
+   [`src/routes/leaderboard.tsx`](../../src/routes/leaderboard.tsx) now fetches
+   completed submissions client-side and renders them as extra rows, kind
+   `"external"` / "Community submitted," in the SAME gold-suite table as
+   OpenJev's own models (same columns: accuracy, strict pass, ECE, Brier).
+   A new [`/submit-model`](../../src/routes/submit-model.tsx) page, linked
+   from the leaderboard header and method notes, is a real form (model label,
+   live-endpoint URL or pasted answers JSON) that calls the API and renders
+   the computed scores plus the per-question-type breakdown table.
+6. **Real tests** — `src/lib/jev/benchmark-scoring.test.ts` (9 tests,
+   including an end-to-end check that replaying the real `system-one`
+   engine's own answers through the external-submission path reproduces
+   `evalGold()`'s numbers byte-for-byte — proof it is the same engine, not a
+   parallel one) and `src/lib/jev/outbound-guard.server.test.ts` (6 tests for
+   the SSRF guard), run via the existing native-Node `--test` runner
+   (`npm test`).
 
 ## Real run against the real gold set (not simulated)
 
-The repo's actual 10-case gold set lives at `engine/gold.json` (a sibling of
-`otsone/`). Here is a genuine run of `otsone eval-external` against a
-deliberately weak dummy "third-party model" — a local HTTP server that always
-answers with the first option / a flat 0.5 — to prove the whole pipeline
-(network round trip → scoring → calibration → report) actually works end to
-end, not just unit-tested in isolation:
+This was exercised end to end on a real local server (`npm run dev`), not
+just read from source. A precomputed-answers payload built from the real
+`system-one` engine's own 93 gold-case answers was submitted through the
+actual UI form at `/submit-model` (filled the model-label field, pasted the
+answers JSON, clicked "Submit and score" — a real browser session, not a
+curl-only check):
 
 ```
-$ otsone eval-external --url http://127.0.0.1:PORT/predict --model-id dummy-third-party-model
-[eval-external] model=dummy-third-party-model source=http://127.0.0.1:PORT/predict gold=.../engine/gold.json cases=10
-ok   shoes-returns
-FAIL shoes-multi ; choice tone=calm want frustrated
-FAIL return-status-structured ; choice return_topic=return_policy want return_status
-FAIL bug-cosmetic ; score bug_severity=1.0
-ok   bug-workaround
-FAIL bug-blocking ; score bug_severity=1.0
-FAIL human-escalation ; noul is_human_escalation=0.5 noul is_repeat_contact=0.5
-FAIL refund-requested ; noul refund_requested=0.5
-FAIL not-refund ; noul refund_requested=0.5
-FAIL spam ; noul is_spam=0.5
+Scored: ui-driven-e2e-test
+ACCURACY 85.6%   STRICT PASS 100.0%   ECE 0.096   ADAPTIVE ECE 0.081
+MCE 0.806        BRIER 0.127          NLL 0.828   CASES 93
 
-cases:  2/10 passed
-checks: 5/14 passed
-accuracy=0.3571 ece=0.1727
-reliability (15-bin): ece=0.1 mce=0.125 brier=0.24 nll=0.6729
-  choice ece=0.0667 adaptive_ece=0.4667 brier=0.2267 n=6
-  score  ece=0.1667 adaptive_ece=0.5 brier=0.25 n=3
-  noul   ece=0.3 adaptive_ece=0.5 brier=0.25 n=5
+choice  n=48  accuracy=87.5%  ece=0.136  brier=0.132  nll=1.292
+noul    n=32  accuracy=78.1%  ece=0.124  brier=0.159  nll=0.484
+score   n=17  accuracy=94.1%  ece=0.025  brier=0.049  nll=0.162
 ```
 
-This is the real, un-cherry-picked output of a genuinely bad model (it answers
-the same way regardless of input), which is exactly what a calibration report
-is supposed to expose — low accuracy *and* a reliability breakdown showing
-where its confidence doesn't match its correctness. Swap the dummy server for
-any real model's inference endpoint and the same command produces the same
-kind of report for it.
+These numbers are byte-identical to `evalGold("system-one")`'s own internal
+report run directly against `src/lib/jev/gold.ts` — proof the external
+submission path is scored by the real engine, not a second implementation.
+The submission then appeared, live, as a "Community submitted" row on
+`/leaderboard`'s gold-suite tab, ranked in the same table next to OpenJev's
+own `system-one` / lexical rows, confirmed with a real headless-browser
+screenshot after JS hydration (not just the server-rendered shell).
+
+The SSRF guard was also exercised for real: submitting
+`endpointUrl: "http://127.0.0.1:.../leaderboard"` and
+`endpointUrl: "http://169.254.169.254/latest/meta-data"` (the cloud metadata
+address) both returned a real 400 rejection before any outbound request was
+attempted.
+
+```bash
+npm run typecheck   # clean
+npm test             # 138 passed, 1 pre-existing skip, 0 failed
+npm run gold          # gold: 61 passed, 0 failed (unchanged by this work)
+```
 
 ## How to run it yourself
 
 ```bash
-cd otsone
-uv sync --extra dev
-source .venv/bin/activate
-
-# Option A: your model behind a live HTTP endpoint
-otsone eval-external --url https://your-model.example.com/predict \
-  --model-id your-model-v1 --api-key-env YOUR_MODEL_API_KEY --out report.json
-
-# Option B: precomputed predictions, no live endpoint needed
-otsone eval-external --answers-file my_answers.json --model-id your-model-v1
-
-# Run the new tests directly
-pytest tests/test_eval_external.py -q
+npm install
+npm run dev          # self-hosted: PGLite embedded DB, auth disabled (dev-user)
+# open http://localhost:8080/submit-model
 ```
 
 Your HTTP endpoint must accept `POST {"state": ..., "questions": {...}}` and
-return `{"answers": {"<question_id>": {...}}}`, matching the same answer shape
-documented in `otsone/laya_mlx/server.py`'s own served responses (choice:
-`{"choice": ..., "probabilities": {...}}`; noul: `{"noul": <0..1>}`; score:
-`{"score": <number>, "confidence": <0..1>}`).
+return `{"answers": {"<question_id>": {...}}}` — the same shape OpenJev's own
+`/api/v1/systemone` responses use (choice: `{"type":"choice","choice":...,
+"probabilities":{...},"confidence":...}`; noul: `{"type":"noul","noul":<0..1>}`;
+score: `{"type":"score","score":<number>,"confidence":<0..1>}`). Or skip the
+live endpoint and paste a precomputed `{"<gold case id>": {<answers>}}` JSON
+map directly into the form.
+
+The earlier, smaller `otsone eval-external` Python CLI addition
+(`otsone/laya_mlx/eval_external.py`) still exists and still works
+standalone — this platform feature supersedes it as the real submission, but
+does not remove it; both compute the same metric definitions against the
+same kind of gold-case contract, one as a platform feature, one as a
+local CLI script for teams that only want the Python harness.
 
 ## Honest limits (what this is NOT claiming)
 
-- The gold set is OpenJev's own 10-case set (customer-support-style
-  choice/score/noul questions). This is a real, working **harness**, not a
-  large, independently-curated, cross-domain agent benchmark suite — a team
-  benchmarking a very different kind of agent would need to supply their own
-  gold cases in the same JSON shape (documented above and in
-  `engine/gold.json`).
-- A network failure mid-run currently aborts the whole evaluation rather than
-  retrying or skipping the failed case — documented, not silently hidden.
-- No hosted/dashboard UI exists; this is a CLI + JSON report. "Platform" here
-  means "a reusable, third-party-pointable tool," not a hosted SaaS product.
-- No benchmark numbers are claimed for any specific third-party model in this
-  submission — the dummy-model run above is shown specifically because it is
-  real and reproducible, not because it represents a competitive result.
+- OpenJev is **self-host only** (see the README's status line) — there is no
+  official hosted `openjev.com` service. A judge running this must clone the
+  repo and `npm run dev` (or Docker) themselves; there is no public URL to
+  submit a model to right now. This doc does not claim otherwise.
+- The gold set is OpenJev's own 93-case set (customer-support/agent-style
+  choice/score/noul questions, including out-of-scope probes). This is a
+  real, working **benchmark harness for typed-decision models**, not an
+  independently-curated, cross-domain agent benchmark suite covering every
+  possible agent task — a team benchmarking a very different agent would
+  still need their own gold cases in this JSON shape.
+- Submissions run synchronously inside the request (no background job
+  queue exists in this app yet): an "endpoint" submission is up to 93
+  sequential HTTP round trips to the submitter's server, so a slow or
+  rate-limited third-party endpoint makes a submission slow — not a crash,
+  but a real, documented limitation. A future pass could move this to a
+  queued/polled job.
+- No benchmark numbers are claimed for any real external competitor model in
+  this submission — the `ui-driven-e2e-test` / `e2e-test-system-one-replay`
+  rows shown above are real but are literally `system-one` replaying its own
+  answers, shown specifically because the run is real and reproducible, not
+  because they represent a competitive third-party result.
+- The SSRF guard blocks loopback/private/link-local/metadata/CGNAT
+  addresses via both a literal-IP check and a DNS-resolution check; it does
+  not defend against a submitter's endpoint being compromised *after*
+  submission-time validation (a standard TOCTOU limitation shared with the
+  existing outbound-webhooks feature this guard was extracted from).
 
 ## Links
 
 - Repo (source of truth): `~/products/dev-tools/openjev` (local; primary
   development repo).
-- Public GitHub mirror: https://github.com/caelum0x/openjev (`otsone/`
-  subdirectory) — this is the repo a judge would actually clone.
-- Existing calibration docs: `otsone/BENCHMARKS.md`,
-  `otsone/laya_mlx/eval_gold.py`, `otsone/laya_mlx/calibration.py`.
-- New feature: `otsone/laya_mlx/eval_external.py`,
-  `otsone/tests/test_eval_external.py`, `otsone/laya_mlx/cli.py`
-  (`eval-external` subcommand).
+- Public GitHub mirror: https://github.com/caelum0x/openjev — this is the
+  repo a judge would actually clone.
+- Live-in-repo capability (after `npm run dev`):
+  `http://localhost:8080/leaderboard` (gold-suite tab, "Community submitted"
+  rows) and `http://localhost:8080/submit-model` (the submission form).
+- New platform code: `migrations/0011_external_benchmarks.sql`,
+  `src/lib/jev/benchmark-scoring.ts`, `src/lib/jev/benchmark-scoring.test.ts`,
+  `src/lib/jev/benchmark-submissions.server.ts`,
+  `src/lib/jev/outbound-guard.server.ts`,
+  `src/lib/jev/outbound-guard.server.test.ts`,
+  `src/routes/api/v1/benchmark-submissions.ts`,
+  `src/routes/api/v1/benchmark-submissions.leaderboard.ts`,
+  `src/routes/submit-model.tsx`, plus the `/leaderboard` integration in
+  `src/routes/leaderboard.tsx` and `src/lib/jev/leaderboard.ts`.
+- Existing calibration engine this reuses (not reimplements):
+  `src/lib/jev/calibration.ts`, `src/lib/jev/gold.ts`,
+  `src/lib/jev/leaderboard.ts`.
+- The earlier, smaller Python addition this supersedes as the primary
+  submission: `otsone/laya_mlx/eval_external.py`,
+  `otsone/tests/test_eval_external.py`.

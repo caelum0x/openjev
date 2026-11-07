@@ -1,7 +1,9 @@
 import { createHmac, randomBytes } from "node:crypto";
-import { lookup as dnsLookup } from "node:dns/promises";
-import { isIP } from "node:net";
 import { getSql } from "@/lib/db";
+import {
+  assertPublicAddress,
+  isValidOutboundUrl,
+} from "./outbound-guard.server";
 
 /**
  * DB-backed, user-scoped outbound webhooks (Foundation-2). A user registers a URL
@@ -55,80 +57,9 @@ function toPgTextArray(values: string[]): string {
   return `{${escaped.join(",")}}`;
 }
 
-/** `URL#hostname` wraps IPv6 literals in brackets (e.g. "[::1]"); `net.isIP`
- * only recognizes the bare address, so strip them before any IP check. */
-function stripIpv6Brackets(hostname: string): string {
-  return hostname.startsWith("[") && hostname.endsWith("]")
-    ? hostname.slice(1, -1)
-    : hostname;
-}
-
-/**
- * True for an IPv4/IPv6 literal inside loopback, link-local (incl. the
- * 169.254.169.254 cloud metadata address), RFC1918 private, CGNAT, or
- * unspecified ranges. A Docker-compose bridge network hands out addresses in
- * these same ranges, so this also covers internal service IPs like `db` or
- * `laya-onnx` once resolved.
- */
-function isPrivateOrReservedIp(ip: string): boolean {
-  if (ip.includes(":")) {
-    const lower = ip.toLowerCase();
-    if (lower === "::1" || lower === "::") return true;
-    if (/^fe[89ab][0-9a-f]:/.test(lower)) return true; // link-local fe80::/10
-    if (/^f[cd][0-9a-f]{2}:/.test(lower)) return true; // unique local fc00::/7
-    const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    return mapped ? isPrivateOrReservedIp(mapped[1]) : false;
-  }
-  const parts = ip.split(".").map(Number);
-  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return false;
-  const [a, b] = parts;
-  if (a === 127) return true; // 127.0.0.0/8 loopback
-  if (a === 10) return true; // 10.0.0.0/8
-  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
-  if (a === 192 && b === 168) return true; // 192.168.0.0/16
-  if (a === 169 && b === 254) return true; // 169.254.0.0/16, incl. cloud metadata
-  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
-  if (a === 0) return true; // 0.0.0.0/8 unspecified
-  return false;
-}
-
-/** True when `url` is a well-formed http(s) URL with a host that is not a
- * literal loopback/private/link-local address. Does not resolve hostnames —
- * see `assertPublicAddress` for the DNS-resolution check done at delivery
- * time (also blocks hostnames that resolve to a private address). */
-export function isValidWebhookUrl(url: string): boolean {
-  try {
-    const u = new URL(url);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
-    if (!u.host) return false;
-    const hostname = stripIpv6Brackets(u.hostname.toLowerCase());
-    if (hostname === "localhost" || hostname.endsWith(".localhost")) return false;
-    if (isIP(hostname) && isPrivateOrReservedIp(hostname)) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Resolves `hostname` and throws when it is, or resolves to, a loopback,
- * private, or link-local address. Closes the SSRF gap `isValidWebhookUrl`
- * can't: a public-looking hostname (or an internal docker-compose service
- * name like `laya-onnx`/`db`) that resolves to an internal address.
- */
-async function assertPublicAddress(rawHostname: string): Promise<void> {
-  const hostname = stripIpv6Brackets(rawHostname.toLowerCase());
-  if (isIP(hostname)) {
-    if (isPrivateOrReservedIp(hostname)) {
-      throw new Error("Webhook URL resolves to a private address");
-    }
-    return;
-  }
-  const records = await dnsLookup(hostname, { all: true, verbatim: true });
-  if (records.length === 0 || records.some((r) => isPrivateOrReservedIp(r.address))) {
-    throw new Error("Webhook URL resolves to a private address");
-  }
-}
+/** Webhook-flavored alias of the shared guard (kept for existing callers /
+ * tests importing `isValidWebhookUrl` from this module). */
+export const isValidWebhookUrl = isValidOutboundUrl;
 
 /** Create a webhook for `userId`. Returns the public row PLUS the one-time secret. */
 export async function createWebhook(

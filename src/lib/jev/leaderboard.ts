@@ -30,7 +30,10 @@ export type Runner = (req: SystemOneRequest) => Promise<SystemOneResponse | null
 export type LeaderboardRow = {
   id: string;
   label: string;
-  kind: "local" | "neural" | "llm" | "cascade" | "cloud" | "ablation";
+  /** "external" rows are third-party community submissions (see
+   * benchmark-submissions.server.ts), merged in on the client — every other
+   * kind comes from the committed scripts/leaderboard.mjs run. */
+  kind: "local" | "neural" | "llm" | "cascade" | "cloud" | "ablation" | "external";
   status: "ok" | "not_run";
   /** Why a row was not run (missing sidecar / key), when status is not_run. */
   reason?: string;
