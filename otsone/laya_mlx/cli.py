@@ -44,16 +44,16 @@ def _delegate(module_name: str, extra: Optional[str], argv):
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
-    # `distill`/`eval` take their own flags (e.g. `--backbone`, `--model`) that
-    # otsone's top-level parser knows nothing about. Routing them through an
-    # `argparse` subparser with `nargs=argparse.REMAINDER` hits a known argparse
-    # limitation: any leading `--flag` in the remainder gets flagged as
-    # "unrecognized arguments" by the *top-level* parser before the subparser's
-    # REMAINDER can claim it (confirmed by actually running `otsone distill
-    # --backbone otsone-mini` 2026-11-06 -- it failed every time). So these two
-    # commands are dispatched directly here, before any argparse parsing of the
-    # tail, and the delegated module's own parser (which already handles
-    # `--help` correctly) owns everything after the command name.
+    # `distill`/`eval`/`eval-external` take their own flags (e.g. `--backbone`,
+    # `--model`, `--url`) that otsone's top-level parser knows nothing about.
+    # Routing them through an `argparse` subparser with `nargs=argparse.REMAINDER`
+    # hits a known argparse limitation: any leading `--flag` in the remainder
+    # gets flagged as "unrecognized arguments" by the *top-level* parser before
+    # the subparser's REMAINDER can claim it (confirmed by actually running
+    # `otsone distill --backbone otsone-mini` -- it failed every time). So
+    # these commands are dispatched directly here, before any argparse parsing
+    # of the tail, and the delegated module's own parser (which already
+    # handles `--help` correctly) owns everything after the command name.
     if argv and argv[0] in _DELEGATED_COMMANDS:
         module_name, extra = _DELEGATED_COMMANDS[argv[0]]
         return _delegate(module_name, extra, argv[1:])

@@ -32,9 +32,12 @@ demo = ["rich>=15,<16", "Pillow>=12,<13"]
 # HTTP sidecar (laya-serve): stdlib only beyond the core runtime deps.
 server = []
 # ONNX backend + export: run exported graphs (onnxruntime) and export them (torch).
-onnx = ["onnxruntime>=1.18", "torch>=2.0", "safetensors>=0.6"]
+# onnxscript is required by torch>=2.2's dynamo-based ONNX exporter (torch.onnx.export);
+# without it, export crashes with "ModuleNotFoundError: No module named 'onnxscript'"
+# after a full training run has already completed (confirmed 2026-11-06).
+onnx = ["onnxruntime>=1.18", "torch>=2.0", "safetensors>=0.6", "onnxscript>=0.1"]
 # Distillation / training of a compact ONNX model.
-train = ["torch>=2.0", "sentence-transformers>=3,<6", "onnxruntime>=1.18"]
+train = ["torch>=2.0", "sentence-transformers>=3,<6", "onnxruntime>=1.18", "onnxscript>=0.1"]
 
 [project.scripts]
 # Primary OpenJev entry points.

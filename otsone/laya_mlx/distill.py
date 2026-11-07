@@ -601,6 +601,11 @@ def find_gold(explicit: Optional[str] = None) -> Optional[Path]:
     candidates = [
         here.parent.parent / "engine" / "gold.json",
         here.parent.parent / "benchmarks" / "gold.json",
+        # Real repo layout: otsone/ is a direct child of the openjev/ checkout,
+        # and engine/gold.json is a plain sibling of otsone/ one level up
+        # (openjev/engine/gold.json) -- NOT nested under an extra "openjev"
+        # segment. Confirmed by actually running `otsone distill` 2026-11-07.
+        here.parent.parent.parent / "engine" / "gold.json",
         here.parent.parent.parent / "openjev" / "engine" / "gold.json",
     ]
     for c in candidates:

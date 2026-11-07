@@ -43,6 +43,11 @@ def find_gold(model_dir: Optional[Path], explicit: Optional[str] = None) -> Opti
     candidates += [
         repo / "benchmarks" / GOLD_ENV_VALUE,
         repo / "engine" / GOLD_ENV_VALUE,
+        # Real repo layout: otsone/ (= repo) is a direct child of the openjev/
+        # checkout, so engine/gold.json is a plain sibling of otsone/ one level
+        # up (repo.parent/engine/gold.json) -- not nested under an extra
+        # "openjev" segment. Confirmed by actually running `otsone eval`.
+        repo.parent / "engine" / GOLD_ENV_VALUE,
         repo.parent / "openjev" / "engine" / GOLD_ENV_VALUE,
         repo / "examples" / GOLD_ENV_VALUE,
     ]
