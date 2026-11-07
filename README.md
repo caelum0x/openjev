@@ -1,5 +1,7 @@
 # OpenJev
 
+[![GitHub stars](https://img.shields.io/github/stars/caelum0x/openjev?style=social)](https://github.com/caelum0x/openjev/stargazers)
+
 **Typed decisions instead of prompt-and-parse: an open-source, self-hostable service that
 turns text plus typed questions into calibrated `choice` / `score` / `noul` answers.**
 
@@ -293,6 +295,14 @@ The live roadmap is rendered at `/roadmap` (source:
   mode.
 
 Suggestions are welcome as GitHub issues.
+
+## Found this useful?
+
+If OpenJev saved you a prompt-and-parse hack, a star helps the next person
+wrestling with unreliable LLM output find it. If you know someone building
+agents or routing/triage logic who'd rather get a typed answer back than parse
+prose, a share or a mention helps more than the star — no worries if not, just
+offering since it's free either way.
 
 ## Contributing
 
