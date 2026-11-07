@@ -3,20 +3,37 @@
 import argparse
 import importlib
 import json
+import sys
 from pathlib import Path
+from typing import Optional
 
 from . import __version__
 from .agent import DTYPES, Agent
 
+# (module_name, extra_name) for each subcommand that just delegates its whole
+# tail of argv to a sibling stage module's own argparse parser.
+_DELEGATED_COMMANDS = {
+    "distill": ("distill", "train"),
+    "eval": ("eval_gold", "onnx"),
+    # eval-external has no extra install group: it is stdlib-only (urllib +
+    # the already-present eval_gold/calibration math), so it works in any
+    # otsone install without the onnx/train extras.
+    "eval-external": ("eval_external", None),
+}
 
-def _delegate(module_name: str, extra: str, argv):
-    """Hand off to a sibling stage module (distill / eval), with a clean error."""
+
+def _delegate(module_name: str, extra: Optional[str], argv):
+    """Hand off to a sibling stage module (distill / eval / eval-external), with a clean error."""
     try:
         module = importlib.import_module(f"laya_mlx.{module_name}")
     except ImportError as exc:
+        hint = (
+            f"Install the training/onnx extras (pip install 'otsone[{extra}]') and "
+            if extra
+            else ""
+        )
         raise SystemExit(
-            f"'{module_name}' is unavailable: {exc}. Install the training/onnx extras "
-            f"(pip install 'otsone[{extra}]') and ensure the {module_name} module is present."
+            f"'{module_name}' is unavailable: {exc}. {hint}Ensure the {module_name} module is present."
         )
     entry = getattr(module, "main", None)
     if entry is None:
@@ -25,6 +42,22 @@ def _delegate(module_name: str, extra: str, argv):
 
 
 def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    # `distill`/`eval` take their own flags (e.g. `--backbone`, `--model`) that
+    # otsone's top-level parser knows nothing about. Routing them through an
+    # `argparse` subparser with `nargs=argparse.REMAINDER` hits a known argparse
+    # limitation: any leading `--flag` in the remainder gets flagged as
+    # "unrecognized arguments" by the *top-level* parser before the subparser's
+    # REMAINDER can claim it (confirmed by actually running `otsone distill
+    # --backbone otsone-mini` 2026-11-06 -- it failed every time). So these two
+    # commands are dispatched directly here, before any argparse parsing of the
+    # tail, and the delegated module's own parser (which already handles
+    # `--help` correctly) owns everything after the command name.
+    if argv and argv[0] in _DELEGATED_COMMANDS:
+        module_name, extra = _DELEGATED_COMMANDS[argv[0]]
+        return _delegate(module_name, extra, argv[1:])
+
     parser = argparse.ArgumentParser(prog="otsone", description=__doc__)
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -63,6 +96,11 @@ def main(argv=None):
     commands.add_parser(
         "eval", help="Evaluate an ONNX checkpoint (delegates to laya_mlx.eval_gold)"
     ).add_argument("args", nargs=argparse.REMAINDER)
+    commands.add_parser(
+        "eval-external",
+        help="Run the gold calibration report against a third party's own model/API "
+        "(delegates to laya_mlx.eval_external)",
+    ).add_argument("args", nargs=argparse.REMAINDER)
 
     args = parser.parse_args(argv)
 
@@ -99,6 +137,8 @@ def main(argv=None):
         return _delegate("distill", "train", args.args)
     elif args.command == "eval":
         return _delegate("eval_gold", "onnx", args.args)
+    elif args.command == "eval-external":
+        return _delegate("eval_external", None, args.args)
 
 
 if __name__ == "__main__":
